@@ -29,6 +29,7 @@ const tools = [
     description: "Combine multiple PDFs in the order you want with our easy merger.",
     iconColor: "bg-gradient-to-br from-[hsl(200,95%,45%)] to-[hsl(185,80%,50%)]",
     category: "Organize",
+    href: "/merge-pdf",
   },
   {
     icon: Split,
@@ -36,6 +37,7 @@ const tools = [
     description: "Separate one page or a whole set into independent PDF files.",
     iconColor: "bg-gradient-to-br from-[hsl(15,90%,55%)] to-[hsl(30,85%,50%)]",
     category: "Organize",
+    href: "/split-pdf",
   },
   {
     icon: Minimize2,
@@ -43,6 +45,7 @@ const tools = [
     description: "Reduce file size while optimizing for maximum PDF quality.",
     iconColor: "bg-gradient-to-br from-[hsl(140,70%,45%)] to-[hsl(160,65%,45%)]",
     category: "Optimize",
+    href: "/compress-pdf",
   },
   {
     icon: FileText,
@@ -216,6 +219,7 @@ const Index = () => {
               description={tool.description}
               iconColor={tool.iconColor}
               badge={tool.badge}
+              href={tool.href}
             />
           ))}
         </div>
