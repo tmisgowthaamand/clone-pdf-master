@@ -1,0 +1,83 @@
+{
+  "name": "PowerPoint to PDF Auto-Converter",
+  "description": "Automatically convert PowerPoint files from Google Drive to PDF",
+  "trigger": {
+    "type": "google_drive",
+    "event": "new_file_in_folder",
+    "config": {
+      "folder_id": "YOUR_FOLDER_ID",
+      "file_types": [".pptx", ".ppt"],
+      "include_team_drives": false
+    }
+  },
+  "filters": [
+    {
+      "type": "file_size",
+      "condition": "less_than",
+      "value": 104857600,
+      "unit": "bytes",
+      "description": "Only process files under 100MB"
+    },
+    {
+      "type": "file_extension",
+      "condition": "matches",
+      "value": "\\.(pptx?|ppt)$",
+      "description": "Only PowerPoint files"
+    }
+  ],
+  "actions": [
+    {
+      "step": 1,
+      "type": "webhook",
+      "name": "Convert PowerPoint to PDF",
+      "config": {
+        "method": "POST",
+        "url": "http://your-domain.com/api/convert/powerpoint-to-pdf",
+        "headers": {
+          "Content-Type": "multipart/form-data"
+        },
+        "body": {
+          "file_url": "{{trigger.file.download_url}}",
+          "filename": "{{trigger.file.name}}",
+          "quality": "high"
+        },
+        "timeout": 300
+      }
+    },
+    {
+      "step": 2,
+      "type": "google_drive",
+      "name": "Upload PDF to Google Drive",
+      "config": {
+        "action": "upload_file",
+        "folder_id": "YOUR_OUTPUT_FOLDER_ID",
+        "file_content": "{{step1.response.pdf_data}}",
+        "filename": "{{trigger.file.name_without_extension}}.pdf",
+        "convert": false
+      }
+    },
+    {
+      "step": 3,
+      "type": "email",
+      "name": "Send Notification",
+      "config": {
+        "to": "{{trigger.file.owner_email}}",
+        "subject": "PDF Conversion Complete - {{trigger.file.name}}",
+        "body": "Your PowerPoint file '{{trigger.file.name}}' has been converted to PDF.\n\nView PDF: {{step2.file.web_view_link}}",
+        "attachments": []
+      }
+    }
+  ],
+  "error_handling": {
+    "on_error": "continue",
+    "retry_count": 3,
+    "retry_delay": 60,
+    "notify_on_failure": true,
+    "notification_email": "admin@yourdomain.com"
+  },
+  "settings": {
+    "enabled": true,
+    "run_limit": 100,
+    "run_limit_period": "day"
+  }
+}

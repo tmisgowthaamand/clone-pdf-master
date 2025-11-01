@@ -1,0 +1,140 @@
+{
+  "name": "Convert PowerPoint to PDF",
+  "description": "iOS Shortcut to convert PowerPoint files to PDF using the converter",
+  "icon": {
+    "glyph": "document",
+    "color": "red"
+  },
+  "actions": [
+    {
+      "type": "SelectFile",
+      "parameters": {
+        "fileTypes": ["com.microsoft.powerpoint.ppt", "org.openxmlformats.presentationml.presentation"],
+        "selectMultiple": false
+      }
+    },
+    {
+      "type": "GetName",
+      "parameters": {
+        "input": "{{SelectFile.output}}"
+      }
+    },
+    {
+      "type": "ShowAlert",
+      "parameters": {
+        "title": "Converting PowerPoint",
+        "message": "Converting {{GetName.output}} to PDF...",
+        "showCancelButton": false
+      }
+    },
+    {
+      "type": "URL",
+      "parameters": {
+        "url": "http://your-domain.com/api/convert/powerpoint-to-pdf"
+      }
+    },
+    {
+      "type": "GetContentsOfURL",
+      "parameters": {
+        "url": "{{URL.output}}",
+        "method": "POST",
+        "requestBody": {
+          "type": "Form",
+          "fields": [
+            {
+              "key": "file",
+              "value": "{{SelectFile.output}}"
+            },
+            {
+              "key": "quality",
+              "value": "high"
+            }
+          ]
+        },
+        "headers": {
+          "Content-Type": "multipart/form-data"
+        }
+      }
+    },
+    {
+      "type": "SetName",
+      "parameters": {
+        "input": "{{GetContentsOfURL.output}}",
+        "name": "{{GetName.output}}.pdf",
+        "dontIncludeExtension": false
+      }
+    },
+    {
+      "type": "SaveFile",
+      "parameters": {
+        "file": "{{SetName.output}}",
+        "askWhereToSave": false,
+        "destinationPath": "iCloud Drive/Converted PDFs/",
+        "overwriteIfFileExists": true
+      }
+    },
+    {
+      "type": "ShowNotification",
+      "parameters": {
+        "title": "✅ Conversion Complete",
+        "body": "PDF saved to iCloud Drive/Converted PDFs/",
+        "sound": "default"
+      }
+    },
+    {
+      "type": "QuickLook",
+      "parameters": {
+        "input": "{{SaveFile.output}}"
+      }
+    },
+    {
+      "type": "ChooseFromMenu",
+      "parameters": {
+        "prompt": "What would you like to do?",
+        "items": [
+          {
+            "label": "Share via AirDrop",
+            "action": {
+              "type": "Share",
+              "parameters": {
+                "input": "{{SaveFile.output}}",
+                "shareMethod": "AirDrop"
+              }
+            }
+          },
+          {
+            "label": "Send via Email",
+            "action": {
+              "type": "SendEmail",
+              "parameters": {
+                "recipients": [],
+                "subject": "Converted PDF - {{GetName.output}}",
+                "body": "Please find the converted PDF attached.",
+                "attachments": ["{{SaveFile.output}}"]
+              }
+            }
+          },
+          {
+            "label": "Open in Files",
+            "action": {
+              "type": "OpenFile",
+              "parameters": {
+                "file": "{{SaveFile.output}}",
+                "app": "Files"
+              }
+            }
+          },
+          {
+            "label": "Done",
+            "action": {
+              "type": "Nothing"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "inputContentType": "public.item",
+  "minimumVersion": "900",
+  "outputContentType": "public.data"
+}

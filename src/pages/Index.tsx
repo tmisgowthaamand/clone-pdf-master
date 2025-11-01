@@ -53,6 +53,7 @@ const tools = [
     description: "Convert your PDF files into easy to edit DOC and DOCX documents.",
     iconColor: "bg-gradient-to-br from-[hsl(210,90%,55%)] to-[hsl(220,85%,60%)]",
     category: "Convert",
+    href: "/pdf-to-word",
   },
   {
     icon: Presentation,
@@ -60,6 +61,7 @@ const tools = [
     description: "Turn your PDF files into easy to edit PPT and PPTX slideshows.",
     iconColor: "bg-gradient-to-br from-[hsl(10,85%,55%)] to-[hsl(20,80%,60%)]",
     category: "Convert",
+    href: "/pdf-to-powerpoint",
   },
   {
     icon: Sheet,
@@ -67,6 +69,7 @@ const tools = [
     description: "Extract data from PDFs into Excel spreadsheets in seconds.",
     iconColor: "bg-gradient-to-br from-[hsl(145,75%,45%)] to-[hsl(155,70%,50%)]",
     category: "Convert",
+    href: "/pdf-to-excel",
   },
   {
     icon: FileText,
@@ -74,6 +77,7 @@ const tools = [
     description: "Make DOC and DOCX files easy to read by converting them to PDF.",
     iconColor: "bg-gradient-to-br from-[hsl(215,85%,50%)] to-[hsl(225,80%,55%)]",
     category: "Convert",
+    href: "/word-to-pdf",
   },
   {
     icon: Presentation,
@@ -81,6 +85,7 @@ const tools = [
     description: "Make PPT and PPTX slideshows easy to view by converting to PDF.",
     iconColor: "bg-gradient-to-br from-[hsl(5,80%,50%)] to-[hsl(15,75%,55%)]",
     category: "Convert",
+    href: "/powerpoint-to-pdf",
   },
   {
     icon: Sheet,
@@ -88,6 +93,7 @@ const tools = [
     description: "Make Excel spreadsheets easy to read by converting them to PDF.",
     iconColor: "bg-gradient-to-br from-[hsl(150,70%,40%)] to-[hsl(160,65%,45%)]",
     category: "Convert",
+    href: "/excel-to-pdf",
   },
   {
     icon: FileEdit,
@@ -96,6 +102,7 @@ const tools = [
     iconColor: "bg-gradient-to-br from-[hsl(280,65%,55%)] to-[hsl(290,60%,60%)]",
     category: "Edit",
     badge: "New",
+    href: "/edit-pdf",
   },
   {
     icon: Image,
@@ -103,6 +110,7 @@ const tools = [
     description: "Convert each PDF page into a JPG or extract images from PDF.",
     iconColor: "bg-gradient-to-br from-[hsl(45,95%,55%)] to-[hsl(55,90%,60%)]",
     category: "Convert",
+    href: "/pdf-to-jpg",
   },
   {
     icon: Image,
@@ -110,6 +118,7 @@ const tools = [
     description: "Convert JPG images to PDF in seconds with perfect quality.",
     iconColor: "bg-gradient-to-br from-[hsl(40,90%,50%)] to-[hsl(50,85%,55%)]",
     category: "Convert",
+    href: "/jpg-to-pdf",
   },
   {
     icon: PenTool,

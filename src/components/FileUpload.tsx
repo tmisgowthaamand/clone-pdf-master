@@ -58,20 +58,57 @@ export const FileUpload = ({
     <div
       onDrop={handleDrop}
       onDragOver={(e) => e.preventDefault()}
-      className="relative border-2 border-dashed border-border rounded-lg p-12 text-center hover:border-primary transition-colors cursor-pointer group"
+      className="relative text-center transition-all"
+      style={{
+        padding: '60px 20px',
+        minHeight: '300px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
     >
       <input
         type="file"
         accept={accept}
         multiple={multiple}
         onChange={handleFileInput}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        id="file-upload-input"
+        className="hidden"
       />
-      <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground group-hover:text-primary transition-colors" />
-      <h3 className="text-lg font-semibold mb-2">Drop your files here</h3>
-      <p className="text-muted-foreground">or click to browse</p>
-      <p className="text-sm text-muted-foreground mt-2">
-        {multiple ? "Multiple files" : "Single file"} • Max {maxSize / (1024 * 1024)}MB
+      
+      {/* iLovePDF-style button */}
+      <label
+        htmlFor="file-upload-input"
+        className="cursor-pointer inline-flex items-center gap-2 px-8 py-4 rounded-lg font-semibold text-white transition-all hover:shadow-lg"
+        style={{
+          backgroundColor: '#E62B1E',
+          fontSize: '16px',
+          marginBottom: '20px'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#CC2619';
+          e.currentTarget.style.transform = 'translateY(-2px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#E62B1E';
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" strokeLinecap="round" strokeWidth="2" stroke="#fff" fill="none" strokeLinejoin="round">
+          <path d="M10 1.833v16.333"></path>
+          <path d="M1.833 10h16.333"></path>
+        </svg>
+        <span>Select POWERPOINT files</span>
+      </label>
+      
+      {/* Drop text */}
+      <p className="text-base" style={{ color: '#6B7280', marginBottom: '10px' }}>
+        or drop POWERPOINT slideshows here
+      </p>
+      
+      <p className="text-sm" style={{ color: '#9CA3AF' }}>
+        Supports .ppt, .pptx • Max {maxSize / (1024 * 1024)}MB
       </p>
     </div>
   );
