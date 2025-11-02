@@ -7,15 +7,39 @@ interface FileUploadProps {
   accept?: string;
   multiple?: boolean;
   maxSize?: number;
+  fileTypeLabel?: string;
+  fileTypeDescription?: string;
 }
 
 export const FileUpload = ({ 
   onFilesSelected, 
   accept = ".pdf", 
   multiple = false,
-  maxSize = 50 * 1024 * 1024 // 50MB
+  maxSize = 50 * 1024 * 1024, // 50MB
+  fileTypeLabel,
+  fileTypeDescription
 }: FileUploadProps) => {
   const { toast } = useToast();
+  
+  // Auto-detect file type from accept prop
+  const getFileTypeInfo = () => {
+    if (fileTypeLabel && fileTypeDescription) {
+      return { label: fileTypeLabel, description: fileTypeDescription };
+    }
+    
+    if (accept.includes('.pdf')) {
+      return { label: 'PDF', description: 'Supports .pdf' };
+    } else if (accept.includes('.ppt')) {
+      return { label: 'POWERPOINT', description: 'Supports .ppt, .pptx' };
+    } else if (accept.includes('.doc')) {
+      return { label: 'WORD', description: 'Supports .doc, .docx' };
+    } else if (accept.includes('.xls')) {
+      return { label: 'EXCEL', description: 'Supports .xls, .xlsx' };
+    }
+    return { label: 'FILE', description: 'Select files' };
+  };
+  
+  const fileTypeInfo = getFileTypeInfo();
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -99,16 +123,16 @@ export const FileUpload = ({
           <path d="M10 1.833v16.333"></path>
           <path d="M1.833 10h16.333"></path>
         </svg>
-        <span>Select POWERPOINT files</span>
+        <span>Select {fileTypeInfo.label} files</span>
       </label>
       
       {/* Drop text */}
       <p className="text-base" style={{ color: '#6B7280', marginBottom: '10px' }}>
-        or drop POWERPOINT slideshows here
+        or drop {fileTypeInfo.label} files here
       </p>
       
       <p className="text-sm" style={{ color: '#9CA3AF' }}>
-        Supports .ppt, .pptx • Max {maxSize / (1024 * 1024)}MB
+        {fileTypeInfo.description} • Max {maxSize / (1024 * 1024)}MB
       </p>
     </div>
   );

@@ -234,39 +234,6 @@ export const ConversionTemplate = ({
                 <FileList files={files} onRemove={handleRemove} />
                 
                 <Card className="p-6 bg-muted/50">
-                  {!forceCloudConversion && (
-                    <>
-                      <h3 className="font-semibold mb-4">Conversion Method</h3>
-                      <RadioGroup value={conversionMethod} onValueChange={(value) => setConversionMethod(value as 'cloud' | 'client')}>
-                        <div className="space-y-3">
-                          <div className="flex items-start space-x-3 p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors">
-                            <RadioGroupItem value="cloud" id="cloud-conv" disabled={!isSupabaseConfigured} />
-                            <div className="flex-1">
-                              <Label htmlFor="cloud-conv" className="flex items-center gap-2 font-medium cursor-pointer">
-                                <Cloud className="w-4 h-4" />
-                                Cloud Processing {!isSupabaseConfigured && '(Not Configured)'}
-                              </Label>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Uses Supabase Edge Functions for server-side conversion.
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-start space-x-3 p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors">
-                            <RadioGroupItem value="client" id="client-conv" />
-                            <div className="flex-1">
-                              <Label htmlFor="client-conv" className="flex items-center gap-2 font-medium cursor-pointer">
-                                <Laptop className="w-4 h-4" />
-                                Client-Side Processing
-                              </Label>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Processes files in your browser. Works offline.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </RadioGroup>
-                    </>
-                  )}
                   
                   <div className="mt-4 pt-4 border-t border-border">
                     <h4 className="font-semibold mb-2 text-sm">Features</h4>

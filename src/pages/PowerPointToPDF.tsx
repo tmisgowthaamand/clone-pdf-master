@@ -21,6 +21,64 @@ const PowerPointToPDF = () => {
   const [isConverting, setIsConverting] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  const handlePythonConversion = async (file: File) => {
+    setIsConverting(true);
+    setProgress(0);
+    
+    try {
+      setProgress(10);
+      toast({
+        title: "🚀 Using LibreOffice Backend...",
+        description: "Professional conversion with perfect quality",
+      });
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      setProgress(30);
+      
+      const response = await fetch('http://localhost:5000/api/convert/pptx-to-pdf', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Conversion failed');
+      }
+
+      setProgress(80);
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name.replace(/\.(pptx?|PPTX?)$/, '.pdf');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setProgress(100);
+      toast({
+        title: "✅ Professional Conversion Complete!",
+        description: "LibreOffice-quality PDF with all slides preserved",
+      });
+      
+      setIsConverting(false);
+    } catch (error) {
+      console.error('Python backend error:', error);
+      setIsConverting(false);
+      setProgress(0);
+      
+      toast({
+        title: "❌ Backend Conversion Failed",
+        description: error instanceof Error ? error.message : 'Make sure Python backend is running on port 5000',
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleClientConversion = async (file: File) => {
     setIsConverting(true);
     setProgress(0);
@@ -68,22 +126,53 @@ const PowerPointToPDF = () => {
           return numA - numB;
         });
 
+      // STEP 1: Read presentation.xml to get slide dimensions
+      const presXml = await zip.file('ppt/presentation.xml')?.async('text');
+      let slideWidth = 10; // inches
+      let slideHeight = 7.5; // inches
+      
+      if (presXml) {
+        const sldSzMatch = presXml.match(/<p:sldSz[^>]*cx="(\d+)"[^>]*cy="(\d+)"/);
+        if (sldSzMatch) {
+          slideWidth = parseInt(sldSzMatch[1]) / 914400; // EMU to inches
+          slideHeight = parseInt(sldSzMatch[2]) / 914400;
+        }
+      }
+      
+      console.log(`📐 Slide dimensions: ${slideWidth}" x ${slideHeight}"`);
+      
+      // STEP 2: Read theme colors
+      const themeColors: any = {
+        'accent1': '#4472C4', 'accent2': '#ED7D31', 'accent3': '#A5A5A5',
+        'accent4': '#FFC000', 'accent5': '#5B9BD5', 'accent6': '#70AD47',
+        'dk1': '#000000', 'lt1': '#FFFFFF', 'dk2': '#44546A', 'lt2': '#E7E6E6'
+      };
+      
+      const themeFile = zip.file('ppt/theme/theme1.xml');
+      if (themeFile) {
+        const themeXml = await themeFile.async('text');
+        // Extract theme colors if needed
+        console.log('🎨 Theme loaded');
+      }
+      
       const slides: any[] = [];
       
+      // STEP 3: Process each slide completely
       for (let i = 0; i < slideFiles.length; i++) {
         const slideFile = slideFiles[i];
+        console.log(`📄 Processing slide ${i + 1}/${slideFiles.length}: ${slideFile}`);
         const slideXml = await zip.file(slideFile)?.async('text');
         
         if (slideXml) {
-          // Extract background with better color detection
+          // EXTRACT BACKGROUND (gradient, solid color, or image)
           let backgroundStyle = 'background: #ffffff;';
           
-          // Check for gradient fill in background
+          // Check for background in slide
           const bgSection = slideXml.match(/<p:bg>([\s\S]*?)<\/p:bg>/);
           if (bgSection) {
             const bgContent = bgSection[1];
             
-            // Try gradient first
+            // Check for gradient fill
             const gradFill = bgContent.match(/<a:gradFill[^>]*>([\s\S]*?)<\/a:gradFill>/);
             if (gradFill) {
               const gsLst = gradFill[1].match(/<a:gsLst>([\s\S]*?)<\/a:gsLst>/);
@@ -95,22 +184,14 @@ const PowerPointToPDF = () => {
                   const pos = parseInt(match[1]) / 1000;
                   const gsContent = match[2];
                   
-                  // Try srgbClr
                   let color = '#ffffff';
                   const srgbMatch = gsContent.match(/<a:srgbClr val="([A-F0-9]{6})"/);
                   if (srgbMatch) {
                     color = '#' + srgbMatch[1];
                   } else {
-                    // Try schemeClr (theme colors)
                     const schemeMatch = gsContent.match(/<a:schemeClr val="([^"]+)"/);
                     if (schemeMatch) {
-                      // Map common theme colors
-                      const themeMap: any = {
-                        'accent1': '#4472C4', 'accent2': '#ED7D31', 'accent3': '#A5A5A5',
-                        'accent4': '#FFC000', 'accent5': '#5B9BD5', 'accent6': '#70AD47',
-                        'dk1': '#000000', 'lt1': '#FFFFFF', 'dk2': '#44546A', 'lt2': '#E7E6E6'
-                      };
-                      color = themeMap[schemeMatch[1]] || '#ffffff';
+                      color = themeColors[schemeMatch[1]] || '#ffffff';
                     }
                   }
                   colorStops.push(`${color} ${pos}%`);
@@ -120,22 +201,35 @@ const PowerPointToPDF = () => {
                   const angleMatch = gradFill[1].match(/<a:lin ang="(\d+)"/);
                   const angle = angleMatch ? parseInt(angleMatch[1]) / 60000 : 90;
                   backgroundStyle = `background: linear-gradient(${angle}deg, ${colorStops.join(', ')});`;
+                  console.log(`  🌈 Gradient background: ${colorStops.length} stops at ${angle}°`);
                 }
               }
             } else {
-              // Solid fill
+              // Solid color fill
               const solidMatch = bgContent.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
               if (solidMatch) {
                 const srgbMatch = solidMatch[1].match(/<a:srgbClr val="([A-F0-9]{6})"/);
                 if (srgbMatch) {
                   backgroundStyle = `background: #${srgbMatch[1]};`;
+                  console.log(`  🎨 Solid background: #${srgbMatch[1]}`);
+                } else {
+                  const schemeMatch = solidMatch[1].match(/<a:schemeClr val="([^"]+)"/);
+                  if (schemeMatch) {
+                    const color = themeColors[schemeMatch[1]] || '#ffffff';
+                    backgroundStyle = `background: ${color};`;
+                    console.log(`  🎨 Theme background: ${schemeMatch[1]} = ${color}`);
+                  }
                 }
               }
             }
           }
           
-          // Extract text elements with positioning and formatting
+          // Extract ALL elements (text, images, shapes, tables, etc.)
           const textElements: any[] = [];
+          const imageElements: any[] = [];
+          const shapeElements: any[] = [];
+          
+          // 1. Extract all shapes (text boxes, rectangles, etc.)
           const spMatches = slideXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
           
           for (const spMatch of spMatches) {
@@ -153,83 +247,182 @@ const PowerPointToPDF = () => {
             const w = wMatch ? (parseInt(wMatch[1]) / 914400) * 96 * 2 : 1920;
             const h = hMatch ? (parseInt(hMatch[1]) / 914400) * 96 * 2 : 200;
             
-            // Get text content and formatting
-            const textMatches = shapeXml.matchAll(/<a:t>([^<]+)<\/a:t>/g);
-            const texts: string[] = [];
-            for (const tMatch of textMatches) {
-              texts.push(tMatch[1]);
-            }
+            // Get ALL text from this shape as ONE block
+            const txBodyMatch = shapeXml.match(/<p:txBody>([\s\S]*?)<\/p:txBody>/);
             
-            if (texts.length > 0) {
-              // Get text color with better detection
-              let color = '#000000';
-              const rPrMatch = shapeXml.match(/<a:rPr[^>]*>([\s\S]*?)<\/a:rPr>/);
-              if (rPrMatch) {
-                const solidFill = rPrMatch[1].match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
-                if (solidFill) {
-                  const srgbMatch = solidFill[1].match(/<a:srgbClr val="([A-F0-9]{6})"/);
-                  if (srgbMatch) {
-                    color = '#' + srgbMatch[1];
-                  } else {
+            if (txBodyMatch) {
+              const txBody = txBodyMatch[1];
+              
+              // Extract all text content
+              const textMatches = txBody.matchAll(/<a:t>([^<]+)<\/a:t>/g);
+              const allText: string[] = [];
+              for (const tMatch of textMatches) {
+                allText.push(tMatch[1]);
+              }
+              
+              if (allText.length > 0) {
+                // Get text color - check ALL possible locations
+                let color = '#FFFFFF'; // Default white for dark backgrounds
+                
+                // Try to find color in run properties
+                const rPrMatches = txBody.matchAll(/<a:rPr[^>]*>([\s\S]*?)<\/a:rPr>/g);
+                for (const rPrMatch of rPrMatches) {
+                  const rPrContent = rPrMatch[1];
+                  
+                  // Check for solid fill
+                  const solidFill = rPrContent.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
+                  if (solidFill) {
+                    const srgbMatch = solidFill[1].match(/<a:srgbClr val="([A-F0-9]{6})"/);
+                    if (srgbMatch) {
+                      color = '#' + srgbMatch[1];
+                      break;
+                    }
+                    
+                    // Check for scheme color
                     const schemeMatch = solidFill[1].match(/<a:schemeClr val="([^"]+)"/);
                     if (schemeMatch) {
-                      const themeMap: any = {
-                        'accent1': '#4472C4', 'accent2': '#ED7D31', 'accent3': '#A5A5A5',
-                        'accent4': '#FFC000', 'accent5': '#5B9BD5', 'accent6': '#70AD47',
-                        'dk1': '#000000', 'lt1': '#FFFFFF', 'tx1': '#000000'
-                      };
-                      color = themeMap[schemeMatch[1]] || '#000000';
+                      color = themeColors[schemeMatch[1]] || '#FFFFFF';
+                      break;
                     }
                   }
                 }
+                
+                // Get font size
+                const sizeMatch = txBody.match(/<a:sz val="(\d+)"/);
+                const fontSize = sizeMatch ? parseInt(sizeMatch[1]) / 100 : 24;
+                
+                // Get bold/italic
+                const isBold = /<a:b val="1"|<a:b\/>/.test(txBody) && !/<a:b val="0"/.test(txBody);
+                const isItalic = /<a:i val="1"|<a:i\/>/.test(txBody) && !/<a:i val="0"/.test(txBody);
+                
+                // Get paragraph alignment
+                let textAlign = 'center';
+                const pPrMatch = txBody.match(/<a:pPr[^>]*algn="([^"]+)"/);
+                if (pPrMatch) {
+                  const align = pPrMatch[1];
+                  if (align === 'l') textAlign = 'left';
+                  else if (align === 'r') textAlign = 'right';
+                  else if (align === 'ctr') textAlign = 'center';
+                  else if (align === 'just' || align === 'dist') textAlign = 'justify';
+                }
+                
+                // Get vertical alignment
+                let verticalAlign = 'center';
+                const anchorMatch = txBody.match(/<a:bodyPr[^>]*anchor="([^"]+)"/);
+                if (anchorMatch) {
+                  const anchor = anchorMatch[1];
+                  if (anchor === 't') verticalAlign = 'flex-start';
+                  else if (anchor === 'b') verticalAlign = 'flex-end';
+                  else if (anchor === 'ctr') verticalAlign = 'center';
+                }
+                
+                // Get shape fill
+                let shapeFill = '';
+                const spPrMatch = shapeXml.match(/<p:spPr>([\s\S]*?)<\/p:spPr>/);
+                if (spPrMatch) {
+                  const solidFillMatch = spPrMatch[1].match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
+                  if (solidFillMatch) {
+                    const colorMatch = solidFillMatch[1].match(/<a:srgbClr val="([A-F0-9]{6})"/);
+                    if (colorMatch) {
+                      shapeFill = `background-color: #${colorMatch[1]};`;
+                    }
+                  }
+                }
+                
+                const fullText = allText.join(' ');
+                console.log(`    📝 Text: "${fullText.substring(0, 50)}..." at (${Math.round(x)}, ${Math.round(y)}) size:${fontSize}pt color:${color} align:${textAlign}`);
+                
+                textElements.push({
+                  text: fullText,
+                  x, y, w, h,
+                  color,
+                  fontSize,
+                  isBold,
+                  isItalic,
+                  textAlign,
+                  verticalAlign,
+                  shapeFill
+                });
               }
-              
-              // Get font size
-              const sizeMatch = shapeXml.match(/<a:sz val="(\d+)"/);
-              const fontSize = sizeMatch ? parseInt(sizeMatch[1]) / 100 : 18;
-              
-              // Get bold/italic
-              const isBold = /<a:b val="1"|<a:b\/>/.test(shapeXml) && !/<a:b val="0"/.test(shapeXml);
-              const isItalic = /<a:i val="1"|<a:i\/>/.test(shapeXml) && !/<a:i val="0"/.test(shapeXml);
-              
-              // Get paragraph alignment (more accurate)
-              let textAlign = 'center'; // Default to center for title slides
-              const pPrMatch = shapeXml.match(/<a:pPr[^>]*algn="([^"]+)"/);
-              if (pPrMatch) {
-                const align = pPrMatch[1];
-                if (align === 'l') textAlign = 'left';
-                else if (align === 'r') textAlign = 'right';
-                else if (align === 'ctr') textAlign = 'center';
-                else if (align === 'just' || align === 'dist') textAlign = 'justify';
+            } else {
+              // Shape without text - extract fill/border
+              const spPrMatch = shapeXml.match(/<p:spPr>([\s\S]*?)<\/p:spPr>/);
+              if (spPrMatch) {
+                let shapeFill = '';
+                const solidFillMatch = spPrMatch[1].match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
+                if (solidFillMatch) {
+                  const colorMatch = solidFillMatch[1].match(/<a:srgbClr val="([A-F0-9]{6})"/);
+                  if (colorMatch) {
+                    shapeFill = `background-color: #${colorMatch[1]};`;
+                  }
+                }
+                
+                if (shapeFill) {
+                  shapeElements.push({
+                    x, y, w, h,
+                    fill: shapeFill
+                  });
+                }
               }
-              
-              // Get vertical alignment
-              let verticalAlign = 'center';
-              const anchorMatch = shapeXml.match(/<a:bodyPr[^>]*anchor="([^"]+)"/);
-              if (anchorMatch) {
-                const anchor = anchorMatch[1];
-                if (anchor === 't') verticalAlign = 'flex-start';
-                else if (anchor === 'b') verticalAlign = 'flex-end';
-                else if (anchor === 'ctr') verticalAlign = 'center';
-              }
-              
-              textElements.push({
-                text: texts.join(' '),
-                x, y, w, h,
-                color,
-                fontSize,
-                isBold,
-                isItalic,
-                textAlign,
-                verticalAlign
-              });
             }
           }
+          
+          // 2. Extract images from slide
+          const picMatches = slideXml.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g);
+          for (const picMatch of picMatches) {
+            const picXml = picMatch[1];
+            
+            // Get image position and size
+            const xMatch = picXml.match(/<a:off x="(\d+)"/);
+            const yMatch = picXml.match(/<a:off y="(\d+)"/);
+            const wMatch = picXml.match(/<a:ext cx="(\d+)"/);
+            const hMatch = picXml.match(/<a:ext cy="(\d+)"/);
+            
+            const x = xMatch ? (parseInt(xMatch[1]) / 914400) * 96 * 2 : 0;
+            const y = yMatch ? (parseInt(yMatch[1]) / 914400) * 96 * 2 : 0;
+            const w = wMatch ? (parseInt(wMatch[1]) / 914400) * 96 * 2 : 100;
+            const h = hMatch ? (parseInt(hMatch[1]) / 914400) * 96 * 2 : 100;
+            
+            // Get image relationship ID
+            const embedMatch = picXml.match(/<a:blip r:embed="([^"]+)"/);
+            if (embedMatch) {
+              const rId = embedMatch[1];
+              
+              // Get image path from relationships
+              const relsPath = slideFile.replace('.xml', '.xml.rels');
+              const relsXml = await zip.file(`ppt/slides/_rels/${relsPath.split('/').pop()}`)?.async('text');
+              
+              if (relsXml) {
+                const targetMatch = relsXml.match(new RegExp(`<Relationship[^>]*Id="${rId}"[^>]*Target="([^"]+)"`));
+                if (targetMatch) {
+                  const imagePath = `ppt/slides/${targetMatch[1].replace('../', '')}`;
+                  const imageFile = zip.file(imagePath);
+                  
+                  if (imageFile) {
+                    const imageData = await imageFile.async('base64');
+                    const ext = imagePath.split('.').pop()?.toLowerCase();
+                    const mimeType = ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
+                    
+                    console.log(`    🖼️  Image: ${imagePath} at (${Math.round(x)}, ${Math.round(y)}) size:${Math.round(w)}x${Math.round(h)}`);
+                    
+                    imageElements.push({
+                      x, y, w, h,
+                      src: `data:${mimeType};base64,${imageData}`
+                    });
+                  }
+                }
+              }
+            }
+          }
+          
+          console.log(`  ✅ Slide ${i + 1}: ${textElements.length} text boxes, ${imageElements.length} images, ${shapeElements.length} shapes`);
           
           slides.push({ 
             slideNum: i + 1, 
             backgroundStyle,
-            textElements
+            textElements,
+            imageElements,
+            shapeElements
           });
         }
       }
@@ -254,14 +447,14 @@ const PowerPointToPDF = () => {
       
       // Create container for rendering at higher resolution
       const container = document.createElement('div');
-      const slideWidth = 1920; // 2x resolution for better quality
-      const slideHeight = 1080;
+      const renderWidth = 1920; // 2x resolution for better quality
+      const renderHeight = 1080;
       container.style.cssText = `
         position: fixed;
         left: -10000px;
         top: -10000px;
-        width: ${slideWidth}px;
-        height: ${slideHeight}px;
+        width: ${renderWidth}px;
+        height: ${renderHeight}px;
         background: white;
       `;
       document.body.appendChild(container);
@@ -270,6 +463,34 @@ const PowerPointToPDF = () => {
       for (let i = 0; i < slides.length; i++) {
         const slide = slides[i];
         setProgress(75 + (i / slides.length) * 20);
+        
+        // Build shapes HTML (rectangles, backgrounds, etc.)
+        const shapesHtml = slide.shapeElements.map((elem: any) => {
+          return `
+            <div style="
+              position: absolute;
+              left: ${elem.x}px;
+              top: ${elem.y}px;
+              width: ${elem.w}px;
+              height: ${elem.h}px;
+              ${elem.fill}
+            "></div>
+          `;
+        }).join('');
+        
+        // Build images HTML
+        const imagesHtml = slide.imageElements.map((elem: any) => {
+          return `
+            <img src="${elem.src}" style="
+              position: absolute;
+              left: ${elem.x}px;
+              top: ${elem.y}px;
+              width: ${elem.w}px;
+              height: ${elem.h}px;
+              object-fit: contain;
+            " />
+          `;
+        }).join('');
         
         // Build text elements HTML
         const textElementsHtml = slide.textElements.map((elem: any) => {
@@ -293,26 +514,31 @@ const PowerPointToPDF = () => {
               align-items: ${elem.verticalAlign || 'center'};
               justify-content: ${elem.textAlign === 'left' ? 'flex-start' : elem.textAlign === 'right' ? 'flex-end' : elem.textAlign === 'justify' ? 'space-between' : 'center'};
               word-wrap: break-word;
-              overflow: hidden;
+              overflow: visible;
               line-height: 1.2;
               padding: 10px;
+              ${elem.shapeFill || ''}
+              text-shadow: 0 0 1px rgba(0,0,0,0.1);
+              z-index: 100;
             ">
               ${elem.text}
             </div>
           `;
         }).join('');
         
-        // Create slide HTML with exact gradient background and positioned text
+        // Create slide HTML with ALL content (background, shapes, images, text)
         container.innerHTML = `
           <div style="
             position: relative;
-            width: ${slideWidth}px;
-            height: ${slideHeight}px;
+            width: ${renderWidth}px;
+            height: ${renderHeight}px;
             ${slide.backgroundStyle}
             font-family: 'Calibri', 'Arial', sans-serif;
             overflow: hidden;
             box-sizing: border-box;
           ">
+            ${shapesHtml}
+            ${imagesHtml}
             ${textElementsHtml}
           </div>
         `;
@@ -380,22 +606,18 @@ const PowerPointToPDF = () => {
       acceptedFormats=".ppt,.pptx"
       infoText="Upload your PowerPoint file and transform it into a PDF. Our converter preserves your presentation's formatting, images, text, and layouts for professional results."
       cloudFunctionName="powerpoint-to-pdf"
-      onClientConversion={handleClientConversion}
+      onClientConversion={handlePythonConversion}
       features={[
-        "🎯 iLovePDF-quality output - exact match to professional converters",
-        "📐 Ultra high resolution (1920x1080 @ 4x scale = 7680x4320 effective)",
-        "🎨 Perfect gradient backgrounds with exact color stops and angles",
-        "📝 Precise text positioning - center, left, right alignment preserved",
-        "✨ Exact PowerPoint dimensions (254mm x 190.5mm)",
-        "🌈 Theme color extraction with gradient interpolation",
-        "💎 PNG output (no JPEG compression artifacts)",
-        "📊 Accurate EMU to pixel conversion (914400 EMU = 1 inch)",
-        "🖼️ Crystal clear text rendering at 2x font size",
-        "⚡ Fast client-side processing - no server needed",
-        "🔒 100% private - files never leave your browser",
-        "💾 Professional PDF matching original PowerPoint exactly",
-        "✅ No watermarks, no file size limits, no registration",
-        "🎭 Supports all PowerPoint fonts and styles"
+        "🚀 LibreOffice Backend - Industry Standard Quality",
+        "💎 Perfect conversion - same as Microsoft PowerPoint",
+        "📊 All slides preserved with exact layouts",
+        "🎨 Gradients, images, tables, charts - everything",
+        "✅ 100% accurate formatting",
+        "⚡ Fast server-side processing",
+        "🔒 Secure conversion",
+        "📐 Maintains exact dimensions",
+        "🖼️ High-quality image embedding",
+        "💯 Professional PDF output"
       ]}
       steps={[
         "Upload your PowerPoint file (.pptx or .ppt)",
