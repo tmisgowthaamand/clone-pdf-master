@@ -1,25 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/FileUpload";
 import { FileList } from "@/components/FileList";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Download, Type, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Edit } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import * as pdfjsLib from 'pdfjs-dist';
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFEditor } from "@/components/PDFEditor";
 
 const EditPDF = () => {
   const [files, setFiles] = useState<File[]>([]);
-  const [processing, setProcessing] = useState(false);
-  const [textToAdd, setTextToAdd] = useState('');
+  const [showEditor, setShowEditor] = useState(false);
+  const [pdfData, setPdfData] = useState<string>("");
+  const [filename, setFilename] = useState<string>("");
   const { toast } = useToast();
-
-  useEffect(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
-  }, []);
 
   const handleFilesSelected = (newFiles: File[]) => {
     setFiles(newFiles);
@@ -39,59 +33,35 @@ const EditPDF = () => {
       return;
     }
 
-    if (!textToAdd.trim()) {
-      toast({
-        title: "No text entered",
-        description: "Please enter text to add to the PDF",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      const file = files[0];
-      const arrayBuffer = await file.arrayBuffer();
-      
-      const pdfDoc = await PDFDocument.load(arrayBuffer);
-      const pages = pdfDoc.getPages();
-      const firstPage = pages[0];
-      
-      const { width, height } = firstPage.getSize();
-      
-      firstPage.drawText(textToAdd, {
-        x: 50,
-        y: height - 50,
-        size: 14,
-        color: rgb(0, 0, 0),
-      });
-      
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = file.name.replace('.pdf', '-edited.pdf');
-      link.click();
-      
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Success!",
-        description: `PDF edited successfully. Downloaded as ${file.name.replace('.pdf', '-edited.pdf')}`,
-      });
-    } catch (error) {
-      console.error('Error editing PDF:', error);
-      toast({
-        title: "Error",
-        description: "Failed to edit PDF. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setProcessing(false);
-    }
+    const file = files[0];
+    
+    // Load PDF into editor
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Data = event.target?.result as string;
+      if (base64Data) {
+        setPdfData(base64Data.split(',')[1]);
+        setFilename(file.name);
+        setShowEditor(true);
+        
+        toast({
+          title: "Opening Editor",
+          description: "Loading PDF editor interface...",
+        });
+      }
+    };
+    reader.readAsDataURL(file);
   };
+
+  const handleBackFromEditor = () => {
+    setShowEditor(false);
+    setPdfData("");
+    setFilename("");
+  };
+
+  if (showEditor) {
+    return <PDFEditor pdfData={pdfData} filename={filename} onBack={handleBackFromEditor} />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -111,17 +81,17 @@ const EditPDF = () => {
               Edit PDF
             </h1>
             <p className="text-muted-foreground text-lg">
-              Add text, images, and annotations to your PDF documents
+              Add text, images, shapes, and annotations to your PDF documents
             </p>
           </div>
 
           <Card className="mb-6 p-4 bg-primary/5 border-primary/20">
             <div className="flex items-start gap-3">
-              <Type className="h-5 w-5 text-primary mt-0.5" />
+              <Edit className="h-5 w-5 text-primary mt-0.5" />
               <div>
-                <h3 className="font-semibold text-primary mb-1">PDF Editing</h3>
+                <h3 className="font-semibold text-primary mb-1">Interactive PDF Editor</h3>
                 <p className="text-sm text-muted-foreground">
-                  Add text to your PDF documents. Text will be added to the first page at the top.
+                  Upload your PDF and use our full-featured editor with tools for text, drawing, shapes, and more.
                 </p>
               </div>
             </div>
@@ -135,57 +105,61 @@ const EditPDF = () => {
                 <FileList files={files} onRemove={handleRemove} />
                 
                 <Card className="p-6 bg-muted/50">
-                  <h3 className="font-semibold mb-4">Edit Options</h3>
+                  <h3 className="font-semibold mb-4">Editing Features</h3>
                   
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="text-input">Text to Add</Label>
-                      <Input
-                        id="text-input"
-                        type="text"
-                        placeholder="Enter text to add to PDF..."
-                        value={textToAdd}
-                        onChange={(e) => setTextToAdd(e.target.value)}
-                        className="mt-2"
-                      />
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Text will be added to the top of the first page
-                      </p>
+                  <div className="space-y-2 text-sm text-muted-foreground mb-6">
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
+                      <p>✏️ Add and edit text with custom fonts and sizes</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
+                      <p>🖼️ Insert images and logos</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
+                      <p>✏️ Draw freehand with pen tool</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
+                      <p>▭ Add shapes (rectangles, circles, lines)</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
+                      <p>🖍️ Highlight text and sections</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
+                      <p>↶ Undo/Redo support</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
+                      <p>🔍 Zoom in/out for precision editing</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
+                      <p>📄 Multi-page support with thumbnails</p>
                     </div>
                   </div>
                   
-                  <div className="mt-6 pt-4 border-t border-border">
-                    <h4 className="font-semibold mb-2 text-sm">Features</h4>
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                        <p>Add custom text to PDFs</p>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                        <p>Preserves original PDF content</p>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                        <p>Creates new edited PDF file</p>
-                      </div>
-                    </div>
+                  <div className="pt-4 border-t border-border">
+                    <h4 className="font-semibold mb-2 text-sm">How to Use</h4>
+                    <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
+                      <li>Click "Open Editor" to launch the editing interface</li>
+                      <li>Select tools from the left sidebar</li>
+                      <li>Click on the PDF to add text, shapes, or annotations</li>
+                      <li>Use the top toolbar for formatting options</li>
+                      <li>Click "Download PDF" when finished</li>
+                    </ol>
                   </div>
                 </Card>
                 
                 <Button
                   onClick={handleEditPDF}
-                  disabled={processing || !textToAdd.trim()}
                   className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 h-12 text-lg"
                 >
-                  {processing ? (
-                    "Processing..."
-                  ) : (
-                    <>
-                      <Download className="w-5 h-5 mr-2" />
-                      Edit PDF
-                    </>
-                  )}
+                  <Edit className="w-5 h-5 mr-2" />
+                  Open Editor
                 </Button>
               </>
             )}

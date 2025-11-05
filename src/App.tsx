@@ -1,51 +1,62 @@
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import PowerPointToPDF from "./pages/PowerPointToPDF";
+import PDFToPowerPoint from "./pages/PDFToPowerPoint";
+import WordToPDF from "./pages/WordToPDF";
+import PDFToWord from "./pages/PDFToWord";
+import PDFToExcel from "./pages/PDFToExcel";
+import ExcelToPDF from "./pages/ExcelToPDF";
+import JPGToPDF from "./pages/JPGToPDF";
+import PDFToJPG from "./pages/PDFToJPG";
+import HTMLToPDF from "./pages/HTMLToPDF";
 import MergePDF from "./pages/MergePDF";
 import SplitPDF from "./pages/SplitPDF";
 import CompressPDF from "./pages/CompressPDF";
-import PDFToWord from "./pages/PDFToWord";
-import PDFToPowerPoint from "./pages/PDFToPowerPoint";
-import PDFToExcel from "./pages/PDFToExcel";
-import WordToPDF from "./pages/WordToPDF";
-import PowerPointToPDF from "./pages/PowerPointToPDF";
-import ExcelToPDF from "./pages/ExcelToPDF";
-import PDFToJPG from "./pages/PDFToJPG";
-import JPGToPDF from "./pages/JPGToPDF";
+import RotatePDF from "./pages/RotatePDF";
 import EditPDF from "./pages/EditPDF";
-import NotFound from "./pages/NotFound";
+import ProtectPDF from "./pages/ProtectPDF";
+import UnlockPDF from "./pages/UnlockPDF";
+import SignPDF from "./pages/SignPDF";
+import WatermarkPDF from "./pages/WatermarkPDF";
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        {/* PowerPoint conversions */}
+        <Route path="/pptx-to-pdf" element={<PowerPointToPDF />} />
+        <Route path="/powerpoint-to-pdf" element={<PowerPointToPDF />} />
+        <Route path="/pdf-to-pptx" element={<PDFToPowerPoint />} />
+        <Route path="/pdf-to-powerpoint" element={<PDFToPowerPoint />} />
+        {/* Word conversions */}
+        <Route path="/docx-to-pdf" element={<WordToPDF />} />
+        <Route path="/word-to-pdf" element={<WordToPDF />} />
+        <Route path="/pdf-to-docx" element={<PDFToWord />} />
+        <Route path="/pdf-to-word" element={<PDFToWord />} />
+        {/* Excel conversions */}
+        <Route path="/pdf-to-excel" element={<PDFToExcel />} />
+        <Route path="/excel-to-pdf" element={<ExcelToPDF />} />
+        {/* Image conversions */}
+        <Route path="/jpg-to-pdf" element={<JPGToPDF />} />
+        <Route path="/pdf-to-jpg" element={<PDFToJPG />} />
+        {/* Other conversions */}
+        <Route path="/html-to-pdf" element={<HTMLToPDF />} />
+        {/* PDF tools */}
+        <Route path="/merge-pdf" element={<MergePDF />} />
+        <Route path="/split-pdf" element={<SplitPDF />} />
+        <Route path="/compress-pdf" element={<CompressPDF />} />
+        <Route path="/rotate-pdf" element={<RotatePDF />} />
+        <Route path="/edit-pdf" element={<EditPDF />} />
+        <Route path="/protect-pdf" element={<ProtectPDF />} />
+        <Route path="/unlock-pdf" element={<UnlockPDF />} />
+        <Route path="/sign-pdf" element={<SignPDF />} />
+        <Route path="/watermark-pdf" element={<WatermarkPDF />} />
+      </Routes>
       <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/merge-pdf" element={<MergePDF />} />
-          <Route path="/split-pdf" element={<SplitPDF />} />
-          <Route path="/compress-pdf" element={<CompressPDF />} />
-          <Route path="/pdf-to-word" element={<PDFToWord />} />
-          <Route path="/pdf-to-powerpoint" element={<PDFToPowerPoint />} />
-          <Route path="/pdf-to-excel" element={<PDFToExcel />} />
-          <Route path="/word-to-pdf" element={<WordToPDF />} />
-          <Route path="/powerpoint-to-pdf" element={<PowerPointToPDF />} />
-          <Route path="/excel-to-pdf" element={<ExcelToPDF />} />
-          <Route path="/pdf-to-jpg" element={<PDFToJPG />} />
-          <Route path="/jpg-to-pdf" element={<JPGToPDF />} />
-          <Route path="/edit-pdf" element={<EditPDF />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </Router>
+  );
+}
 
 export default App;

@@ -1,0 +1,14 @@
+# PDF Signing Dependencies
+PyPDF2==3.0.1
+reportlab==4.0.7
+Pillow==10.1.0
+pdf2image==1.16.3
+poppler-utils  # Required for pdf2image (install via system package manager)
+
+# Streamlit App Dependencies
+streamlit==1.29.0
+streamlit-drawable-canvas==0.9.3
+
+# Already installed (from main requirements)
+# Flask==3.0.0
+# flask-cors==4.0.0

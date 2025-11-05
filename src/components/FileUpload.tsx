@@ -29,6 +29,8 @@ export const FileUpload = ({
     
     if (accept.includes('.pdf')) {
       return { label: 'PDF', description: 'Supports .pdf' };
+    } else if (accept.includes('.jpg') || accept.includes('.jpeg')) {
+      return { label: 'JPG', description: 'Supports .jpg, .jpeg, .png' };
     } else if (accept.includes('.ppt')) {
       return { label: 'POWERPOINT', description: 'Supports .ppt, .pptx' };
     } else if (accept.includes('.doc')) {

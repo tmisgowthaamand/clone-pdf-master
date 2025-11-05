@@ -1,27 +1,38 @@
 import { useState } from "react";
-import { ConversionTemplate } from "@/components/ConversionTemplate";
+import { Button } from "@/components/ui/button";
+import { FileUpload } from "@/components/FileUpload";
+import { FileList } from "@/components/FileList";
 import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Download } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Card } from "@/components/ui/card";
 
 const PDFToWord = () => {
   const { toast } = useToast();
+  const [files, setFiles] = useState<File[]>([]);
   const [isConverting, setIsConverting] = useState(false);
-  const [progress, setProgress] = useState(0);
 
-  const handlePythonConversion = async (file: File) => {
+  const handleFilesSelected = (newFiles: File[]) => {
+    setFiles(newFiles);
+  };
+
+  const handleRemove = (index: number) => {
+    setFiles(files.filter((_, i) => i !== index));
+  };
+
+  const handlePythonConversion = async () => {
+    if (files.length === 0) return;
+    const file = files[0];
     setIsConverting(true);
-    setProgress(0);
     
     try {
-      setProgress(10);
       toast({
-        title: "🚀 Using pdf2docx Library...",
-        description: "Converting PDF to Word with layout preservation",
+        title: "🚀 Starting Conversion...",
+        description: "Converting PDF to Word...",
       });
 
       const formData = new FormData();
       formData.append('file', file);
-
-      setProgress(30);
       
       const response = await fetch('http://localhost:5000/api/convert/pdf-to-docx', {
         method: 'POST',
@@ -32,8 +43,6 @@ const PDFToWord = () => {
         const error = await response.json();
         throw new Error(error.error || 'Conversion failed');
       }
-
-      setProgress(80);
       
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -45,17 +54,15 @@ const PDFToWord = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      setProgress(100);
       toast({
         title: "✅ Conversion Complete!",
-        description: "PDF converted to Word with layout preservation",
+        description: "PDF converted to Word successfully",
       });
       
       setIsConverting(false);
     } catch (error) {
-      console.error('Python backend error:', error);
+      console.error('Conversion error:', error);
       setIsConverting(false);
-      setProgress(0);
       
       toast({
         title: "❌ Conversion Failed",
@@ -66,62 +73,65 @@ const PDFToWord = () => {
   };
 
   return (
-    <div>
-      <div className="max-w-4xl mx-auto mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <div className="flex items-start gap-3">
-          <span className="text-2xl">🎯</span>
-          <div>
-            <h3 className="font-semibold text-lg text-blue-800">PDF to Word - Perfect Visual Preservation</h3>
-            <p className="text-sm text-blue-700 mt-1">
-              This converter renders each PDF page as a <strong>high-quality image (300 DPI)</strong> in Word - ensuring charts, graphs, and layouts are preserved perfectly.
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            Back to tools
+          </Link>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              Convert PDF to Word
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Transform PDF documents into editable Word files
             </p>
-            <div className="mt-3">
-                <p className="text-sm font-semibold text-green-700 mb-2">✅ Perfect Preservation:</p>
-                <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• <strong>Charts & graphs</strong> - Preserved exactly as they appear</li>
-                  <li>• <strong>Tables & formatting</strong> - Visual layout maintained</li>
-                  <li>• <strong>Images & graphics</strong> - High quality (300 DPI)</li>
-                  <li>• <strong>Text & fonts</strong> - Rendered as shown in PDF</li>
-                  <li>• <strong>Colors & styling</strong> - Exact match</li>
-                </ul>
-                <p className="text-xs text-yellow-700 mt-3">
-                  ⚠️ <strong>Note:</strong> Content is preserved as images - not editable. For editable text/charts, use Adobe Acrobat.
+          </div>
+
+          <Card className="mb-6 p-4 bg-blue-50 dark:bg-blue-950 border-blue-200">
+            <div className="flex items-start gap-3">
+              <Download className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">PDF to Word Converter</h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  Upload a PDF file and convert it to an editable Word document.
                 </p>
+              </div>
             </div>
-            <p className="text-xs text-blue-600 mt-3">
-              💡 For perfect conversion with editable charts, use <a href="https://www.adobe.com/acrobat/online/pdf-to-word.html" target="_blank" rel="noopener noreferrer" className="underline font-semibold">Adobe Acrobat</a>
-            </p>
+          </Card>
+
+          <div className="space-y-6">
+            <FileUpload onFilesSelected={handleFilesSelected} multiple={false} accept=".pdf" />
+            
+            {files.length > 0 && (
+              <>
+                <FileList files={files} onRemove={handleRemove} />
+                
+                <Button
+                  onClick={handlePythonConversion}
+                  disabled={isConverting}
+                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 h-12 text-lg"
+                >
+                  {isConverting ? (
+                    "Converting..."
+                  ) : (
+                    <>
+                      <Download className="w-5 h-5 mr-2" />
+                      Convert to Word
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
-      <ConversionTemplate
-        title="Convert PDF to WORD"
-        description="Transform PDF documents into editable Word files with layout preservation"
-        acceptedFormats=".pdf"
-        infoText="Upload a text-based PDF. The converter will preserve layout, images, and tables."
-        cloudFunctionName="pdf-to-word"
-        onClientConversion={handlePythonConversion}
-        features={[
-          "🎯 pdf2docx Library - Better than basic extraction",
-          "📐 Layout preservation",
-          "🖼️ Images extracted and embedded",
-          "📊 Tables structure maintained",
-          "🎨 Fonts and colors preserved (where possible)",
-          "⚡ Fast Python processing",
-          "🔒 Secure conversion",
-          "💾 Standard DOCX format",
-          "✅ Works with text-based PDFs",
-          "🆓 Free and unlimited"
-        ]}
-        steps={[
-          "Upload a text-based PDF file",
-          "Click 'Convert File' to start",
-          "pdf2docx extracts content with layout",
-          "Images and tables are preserved",
-          "Download your editable DOCX file"
-        ]}
-        forceCloudConversion={false}
-      />
     </div>
   );
 };
