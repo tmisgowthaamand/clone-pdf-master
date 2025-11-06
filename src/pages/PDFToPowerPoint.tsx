@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState } from 'react';
+import { API_ENDPOINTS } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/FileUpload";
 import { FileList } from "@/components/FileList";
@@ -35,7 +36,7 @@ const PDFToPowerPoint = () => {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch('http://localhost:5000/api/convert/pdf-to-pptx', {
+      const response = await fetch(API_ENDPOINTS.PDF_TO_PPTX, {
         method: 'POST',
         body: formData,
       });

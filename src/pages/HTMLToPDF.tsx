@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Code, Download, FileText, Eye, RefreshCw } from "lucide-react";
+import { API_ENDPOINTS } from '@/config/api';
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -103,7 +104,7 @@ const HTMLToPDF = () => {
         description: "Converting HTML to PDF...",
       });
 
-      const response = await fetch('http://localhost:5000/api/html-to-pdf', {
+      const response = await fetch(API_ENDPOINTS.HTML_TO_PDF, {
         method: 'POST',
         body: formData,
       });

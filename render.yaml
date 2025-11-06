@@ -12,7 +12,7 @@ services:
       - key: PYTHONUNBUFFERED
         value: 1
       - key: ALLOWED_ORIGINS
-        value: "*"
+        value: "https://pdf-tools-phi.vercel.app,http://localhost:5173,http://localhost:3000"
       - key: MAX_CONTENT_LENGTH
         value: "104857600"
     healthCheckPath: /health

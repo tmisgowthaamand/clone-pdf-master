@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { API_ENDPOINTS } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileUpload } from "@/components/FileUpload";
@@ -63,7 +64,7 @@ const UnlockPDF = () => {
         formData.append("password", password);
       }
 
-      const response = await fetch("http://localhost:5000/api/pdf/unlock", {
+      const response = await fetch(API_ENDPOINTS.PDF_UNLOCK, {
         method: "POST",
         body: formData,
       });

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState } from 'react';
+import { API_ENDPOINTS } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/FileUpload";
 import { FileList } from "@/components/FileList";
@@ -62,7 +63,7 @@ const JPGToPDF = () => {
       formData.append('margin', margin);
       formData.append('mergeAll', mergeAll.toString());
       
-      const response = await fetch('http://localhost:5000/api/convert/jpg-to-pdf', {
+      const response = await fetch(API_ENDPOINTS.JPG_TO_PDF, {
         method: 'POST',
         body: formData,
       });

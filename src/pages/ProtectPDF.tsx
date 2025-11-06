@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { API_ENDPOINTS } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileUpload } from "@/components/FileUpload";
@@ -92,7 +93,7 @@ const ProtectPDF = () => {
       formData.append("file", files[0]);
       formData.append("password", password);
 
-      const response = await fetch("http://localhost:5000/api/pdf/protect", {
+      const response = await fetch(API_ENDPOINTS.PDF_PROTECT, {
         method: "POST",
         body: formData,
       });

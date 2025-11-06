@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { API_ENDPOINTS } from '@/config/api';
 
 const RotatePDF = () => {
   const { toast } = useToast();
@@ -73,7 +74,7 @@ const RotatePDF = () => {
         description: "Rotating your PDF...",
       });
 
-      const response = await fetch('http://localhost:5000/api/pdf/rotate', {
+      const response = await fetch(API_ENDPOINTS.PDF_ROTATE, {
         method: 'POST',
         body: formData,
       });

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState } from 'react';
+import { API_ENDPOINTS } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/FileUpload";
 import { FileList } from "@/components/FileList";
@@ -51,7 +52,7 @@ const PDFToJPG = () => {
       formData.append('quality', quality);
       formData.append('zip', 'false');
       
-      const response = await fetch('http://localhost:5000/api/convert/pdf-to-jpg', {
+      const response = await fetch(API_ENDPOINTS.PDF_TO_JPG, {
         method: 'POST',
         body: formData,
       });

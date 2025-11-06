@@ -39,7 +39,17 @@ import requests
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # For session management
-CORS(app)  # Enable CORS for frontend
+
+# Configure CORS to allow frontend access
+ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', '*').split(',')
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"],
+        "supports_credentials": True
+    }
+})
 
 # Add LibreOffice to PATH (cross-platform)
 if sys.platform == 'win32':

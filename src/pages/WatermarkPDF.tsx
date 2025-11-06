@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { API_ENDPOINTS } from '@/config/api';
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
@@ -123,7 +124,7 @@ const WatermarkPDF = () => {
       });
 
       // Call Python Flask backend (port 5000)
-      const response = await fetch('http://localhost:5000/api/watermark/add', {
+      const response = await fetch(API_ENDPOINTS.WATERMARK_ADD, {
         method: 'POST',
         body: formData,
       });
