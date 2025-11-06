@@ -1,0 +1,5 @@
+# Windows-specific requirements (for local development only)
+# Use this file on Windows: pip install -r requirements-windows.txt
+
+-r requirements.txt
+pywin32>=306
