@@ -2,14 +2,14 @@ services:
   # Backend API Service - Using Docker for system dependencies
   - type: web
     name: pdftools-backend
-    env: docker
+    runtime: docker
     region: oregon
     plan: free
-    branch: main
     dockerfilePath: ./Dockerfile
+    dockerCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 300 --worker-class sync --max-requests 1000 --max-requests-jitter 50 --access-logfile - --error-logfile -
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
+      - key: PORT
+        value: 10000
       - key: FLASK_ENV
         value: production
       - key: PYTHONUNBUFFERED
@@ -19,4 +19,3 @@ services:
       - key: MAX_CONTENT_LENGTH
         value: "104857600"
     healthCheckPath: /health
-    autoDeploy: true
