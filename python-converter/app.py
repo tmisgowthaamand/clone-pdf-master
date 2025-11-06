@@ -17,7 +17,7 @@ if sys.platform == 'win32':
     # Set environment variable for subprocess encoding
     os.environ['PYTHONIOENCODING'] = 'utf-8'
 
-from flask import Flask, request, send_file, jsonify, render_template, session
+from flask import Flask, request, send_file, jsonify, session
 from flask_cors import CORS
 import os
 import tempfile
@@ -37,7 +37,7 @@ from reportlab.lib.colors import HexColor
 from datetime import datetime
 import requests
 
-app = Flask(__name__, template_folder='../frontend/templates')
+app = Flask(__name__)
 app.secret_key = os.urandom(24)  # For session management
 CORS(app)  # Enable CORS for frontend
 
@@ -2150,10 +2150,24 @@ def save_edited_pdf():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/', methods=['GET'])
+@app.route('/', methods=['GET', 'HEAD'])
 def index():
-    """Main landing page"""
-    return render_template('index.html')
+    """API Root - Health Check"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'PDFTools Backend API',
+        'version': '3.0.0',
+        'message': 'Backend is running successfully!',
+        'endpoints': {
+            'info': '/api/info',
+            'health': '/health'
+        }
+    })
+
+@app.route('/health', methods=['GET', 'HEAD'])
+def health_check():
+    """Health check endpoint for Render"""
+    return jsonify({'status': 'healthy'}), 200
 
 @app.route('/api/info', methods=['GET'])
 def api_info():
@@ -3223,14 +3237,22 @@ def protect_pdf():
         return jsonify({"error": f"Failed to protect PDF: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    print("Starting PowerPoint to PDF Converter API")
-    print("Server: http://localhost:5000")
-    print("API: http://localhost:5000/api/convert/pptx-to-pdf")
-    print("Sign PDF: http://localhost:5000/api/sign/apply-signatures")
-    print("Watermark PDF: http://localhost:5000/api/watermark/add")
-    print("Rotate PDF: http://localhost:5000/api/pdf/rotate")
-    print("Unlock PDF: http://localhost:5000/api/pdf/unlock")
-    print("Protect PDF: http://localhost:5000/api/pdf/protect")
-    print("\nMake sure LibreOffice is installed!")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Get port from environment variable (for Render deployment) or use 5000 for local
+    port = int(os.environ.get('PORT', 5000))
+    
+    print("Starting PDFTools Backend API")
+    print(f"Server: http://0.0.0.0:{port}")
+    print(f"Health Check: http://0.0.0.0:{port}/health")
+    print(f"API Info: http://0.0.0.0:{port}/api/info")
+    print("\nAvailable Endpoints:")
+    print("  - PowerPoint to PDF: /api/convert/pptx-to-pdf")
+    print("  - Sign PDF: /api/sign/apply-signatures")
+    print("  - Watermark PDF: /api/watermark/add")
+    print("  - Rotate PDF: /api/pdf/rotate")
+    print("  - Unlock PDF: /api/pdf/unlock")
+    print("  - Protect PDF: /api/pdf/protect")
+    
+    # Disable debug mode in production
+    debug_mode = os.environ.get('FLASK_ENV') != 'production'
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
 
