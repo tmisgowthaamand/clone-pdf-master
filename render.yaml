@@ -1,12 +1,8 @@
 services:
-  # Backend API Service - Using Docker for system dependencies
   - type: web
     name: pdftools-backend
-    runtime: docker
-    region: oregon
-    plan: free
+    env: docker
     dockerfilePath: ./Dockerfile
-    dockerCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 300 --worker-class sync --max-requests 1000 --max-requests-jitter 50 --access-logfile - --error-logfile -
     envVars:
       - key: PORT
         value: 10000
