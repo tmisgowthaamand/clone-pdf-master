@@ -7,12 +7,10 @@ services:
     plan: free
     branch: main
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "cd python-converter && gunicorn app:app --bind 0.0.0.0:$PORT"
+    startCommand: "cd python-converter && gunicorn app:app --bind 0.0.0.0:${PORT:-10000} --workers 1 --timeout 120"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
-      - key: PORT
-        value: 5000
       - key: FLASK_ENV
         value: production
       - key: ALLOWED_ORIGINS
