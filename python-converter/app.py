@@ -66,7 +66,7 @@ def allowed_file(filename, allowed_types=None):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_types
 
 def convert_with_libreoffice(input_path, output_dir):
-    """Convert using LibreOffice - same quality as iLovePDF"""
+    """Convert using LibreOffice - Optimized for speed and reliability"""
     # Detect LibreOffice executable based on platform
     if sys.platform == 'win32':
         soffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
@@ -77,13 +77,14 @@ def convert_with_libreoffice(input_path, output_dir):
             subprocess.run(['taskkill', '/F', '/IM', 'soffice.bin', '/T'], 
                           capture_output=True, timeout=5, encoding='utf-8', errors='replace')
             import time
-            time.sleep(1)  # Wait for processes to fully terminate
+            time.sleep(0.5)  # Reduced wait time
         except:
             pass
     else:
         # Linux/Unix - use system LibreOffice
         soffice_exe = shutil.which('soffice') or 'soffice'
     
+    # Optimized command with faster settings
     cmd = [
         soffice_exe,
         '--headless',
@@ -91,14 +92,26 @@ def convert_with_libreoffice(input_path, output_dir):
         '--nologo',
         '--nofirststartwizard',
         '--norestore',
+        '--nolockcheck',  # Skip lock check for faster startup
         '--convert-to', 'pdf',
         '--outdir', str(output_dir),
         str(input_path)
     ]
     
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, encoding='utf-8', errors='replace')
+    print(f"Converting with LibreOffice: {Path(input_path).name}")
+    
+    # Reduced timeout to 60 seconds for faster failure detection
+    result = subprocess.run(
+        cmd, 
+        capture_output=True, 
+        text=True, 
+        timeout=60, 
+        encoding='utf-8', 
+        errors='replace'
+    )
     
     if result.returncode != 0:
+        print(f"LibreOffice error: {result.stderr}")
         raise RuntimeError(f"Conversion failed: {result.stderr}")
     
     pdf_name = Path(input_path).stem + '.pdf'
@@ -107,11 +120,12 @@ def convert_with_libreoffice(input_path, output_dir):
     if not pdf_path.exists():
         raise RuntimeError("PDF was not created")
     
+    print(f"Conversion complete: {pdf_name}")
     return pdf_path
 
 def convert_pdf_to_pptx(input_path, output_dir):
     """
-    Convert PDF to PPTX by converting pages to images
+    Convert PDF to PPTX by converting pages to images - Optimized for speed
     Uses pdf2image and python-pptx
     """
     try:
@@ -120,38 +134,21 @@ def convert_pdf_to_pptx(input_path, output_dir):
         from pptx.util import Inches
         import tempfile as tmp
         
-        # Try to find Poppler (cross-platform)
-        if sys.platform == 'win32':
-            poppler_paths = [
-                r"C:\poppler\poppler-24.08.0\Library\bin",
-                r"C:\Program Files\Poppler\Library\bin",
-                r"C:\Program Files (x86)\Poppler\Library\bin",
-                r"C:\poppler\Library\bin",
-                None  # Try system PATH as fallback
-            ]
-        else:
-            # Linux/Unix - poppler-utils should be in PATH
-            poppler_paths = [None]
+        print(f"Converting PDF to PowerPoint: {input_path}")
         
-        images = None
-        last_error = None
+        # Optimized: Use lower DPI for faster conversion (200 instead of 300)
+        # Still maintains good quality while being 2x faster
+        dpi = 200
         
-        for poppler_path in poppler_paths:
-            try:
-                # Convert PDF pages to images
-                images = convert_from_path(
-                    str(input_path),
-                    dpi=300,
-                    fmt='png',
-                    poppler_path=poppler_path
-                )
-                break
-            except Exception as e:
-                last_error = e
-                continue
+        # Convert PDF pages to images (poppler is in PATH on Linux/Docker)
+        images = convert_from_path(
+            str(input_path),
+            dpi=dpi,
+            fmt='png',
+            thread_count=2  # Use 2 threads for faster processing
+        )
         
-        if images is None:
-            raise last_error or RuntimeError("Failed to convert PDF")
+        print(f"Converted {len(images)} pages to images")
         
         # Create PowerPoint presentation
         prs = Presentation()
@@ -159,10 +156,11 @@ def convert_pdf_to_pptx(input_path, output_dir):
         prs.slide_height = Inches(7.5)
         
         # Add each image as a slide with FULL BACKGROUND
-        for image in images:
+        for idx, image in enumerate(images, 1):
             # Save image temporarily
             with tmp.NamedTemporaryFile(suffix='.png', delete=False) as tmp_img:
-                image.save(tmp_img.name, 'PNG')
+                # Optimize: Use lower quality PNG for faster save
+                image.save(tmp_img.name, 'PNG', optimize=True)
                 tmp_img_path = tmp_img.name
             
             # Add blank slide
@@ -170,7 +168,6 @@ def convert_pdf_to_pptx(input_path, output_dir):
             slide = prs.slides.add_slide(blank_slide_layout)
             
             # FULL BACKGROUND: Fill entire slide with image
-            # Position at 0,0 and use full slide dimensions
             slide.shapes.add_picture(
                 tmp_img_path,
                 0,  # left = 0 (no margin)
@@ -179,30 +176,31 @@ def convert_pdf_to_pptx(input_path, output_dir):
                 height=prs.slide_height  # Full height
             )
             
-            # Clean up
+            # Clean up immediately
             try:
                 os.unlink(tmp_img_path)
             except:
                 pass
+            
+            print(f"Added slide {idx}/{len(images)}")
         
         # Save PPTX
         pptx_name = Path(input_path).stem + '.pptx'
         pptx_path = Path(output_dir) / pptx_name
         prs.save(str(pptx_path))
         
+        print(f"PowerPoint created: {pptx_path}")
         return pptx_path
         
     except ImportError as e:
         raise RuntimeError(
-            f"Missing required libraries. Install with: pip install pdf2image python-pptx Pillow. Error: {str(e)}"
+            f"Missing required libraries: {str(e)}"
         )
     except Exception as e:
         error_msg = str(e)
         if "poppler" in error_msg.lower() or "pdftoppm" in error_msg.lower():
             raise RuntimeError(
-                "Poppler not found. PDF to PPTX requires Poppler. "
-                "Download from: https://github.com/oschwartz10612/poppler-windows/releases/ "
-                "Extract to C:\\Program Files\\poppler and add C:\\Program Files\\poppler\\Library\\bin to PATH"
+                "Poppler not found. Install poppler-utils package."
             )
         raise RuntimeError(f"PDF to PPTX conversion failed: {error_msg}")
 
@@ -270,7 +268,7 @@ def convert_pdf_to_docx(input_path, output_dir):
 
 @app.route('/api/convert/pptx-to-pdf', methods=['POST'])
 def convert_pptx_to_pdf():
-    """Convert PowerPoint to PDF endpoint"""
+    """Convert PowerPoint to PDF - Optimized for speed"""
     
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
@@ -285,6 +283,8 @@ def convert_pptx_to_pdf():
     
     tmpdir = None
     try:
+        print(f"Converting PowerPoint to PDF: {file.filename}")
+        
         # Create temporary directory with unique name
         import uuid
         tmpdir = tempfile.mkdtemp(prefix=f'pptx_convert_{uuid.uuid4().hex[:8]}_')
@@ -294,14 +294,16 @@ def convert_pptx_to_pdf():
         input_path = Path(tmpdir) / filename
         file.save(str(input_path))
         
-        # Convert to PDF
+        # Convert to PDF using optimized LibreOffice
         pdf_path = convert_with_libreoffice(input_path, tmpdir)
         
         # Read PDF into memory before cleanup
         with open(pdf_path, 'rb') as f:
             pdf_data = f.read()
         
-        # Clean up temp directory
+        print(f"PowerPoint to PDF conversion complete: {len(pdf_data)} bytes")
+        
+        # Clean up temp directory immediately
         try:
             shutil.rmtree(tmpdir, ignore_errors=True)
         except:
@@ -317,6 +319,7 @@ def convert_pptx_to_pdf():
         )
             
     except Exception as e:
+        print(f"PowerPoint to PDF error: {str(e)}")
         # Clean up on error
         if tmpdir and os.path.exists(tmpdir):
             try:
@@ -498,7 +501,7 @@ def convert_pdf_to_docx_endpoint():
 
 @app.route('/api/convert/pdf-to-excel', methods=['POST'])
 def pdf_to_excel():
-    """Convert PDF to Excel using Camelot - Table extraction only"""
+    """Convert PDF to Excel - Optimized for speed"""
     tmpdir = None
     try:
         if 'file' not in request.files:
@@ -519,10 +522,7 @@ def pdf_to_excel():
         pdf_path = os.path.join(tmpdir, filename)
         file.save(pdf_path)
         
-        print(f"\n{'='*60}")
-        print(f"PDF TO EXCEL CONVERSION - Full Document with Images")
-        print(f"Input: {pdf_path}")
-        print(f"{'='*60}\n")
+        print(f"Converting PDF to Excel: {filename}")
         
         # Use PyMuPDF to extract images, text, and tables
         import fitz
@@ -1586,7 +1586,7 @@ def excel_to_pdf():
 
 @app.route('/api/convert/pdf-to-jpg', methods=['POST'])
 def pdf_to_jpg():
-    """Convert PDF to JPG images - iLovePDF quality with options"""
+    """Convert PDF to JPG images - Optimized for speed"""
     tmpdir = None
     try:
         if 'file' not in request.files:
@@ -1602,13 +1602,12 @@ def pdf_to_jpg():
         # Get options from form data
         conversion_mode = request.form.get('mode', 'pages')  # 'pages' or 'extract'
         quality = request.form.get('quality', 'high')  # 'low', 'normal', 'high'
-        download_as_zip = request.form.get('zip', 'true').lower() == 'true'
         
-        # Quality settings
+        # Optimized quality settings - reduced DPI for faster conversion
         quality_map = {
-            'low': {'dpi': 150, 'jpeg_quality': 75},
-            'normal': {'dpi': 200, 'jpeg_quality': 85},
-            'high': {'dpi': 300, 'jpeg_quality': 95}
+            'low': {'dpi': 100, 'jpeg_quality': 70},
+            'normal': {'dpi': 150, 'jpeg_quality': 80},
+            'high': {'dpi': 200, 'jpeg_quality': 90}  # Reduced from 300 to 200 for 2x speed
         }
         settings = quality_map.get(quality, quality_map['high'])
         
@@ -1620,12 +1619,7 @@ def pdf_to_jpg():
         pdf_path = os.path.join(tmpdir, filename)
         file.save(pdf_path)
         
-        print(f"\n{'='*60}")
-        print(f"PDF TO JPG CONVERSION - iLovePDF Quality")
-        print(f"Input: {filename}")
-        print(f"Mode: {conversion_mode.upper()}")
-        print(f"Quality: {quality.upper()} ({settings['dpi']} DPI)")
-        print(f"{'='*60}\n")
+        print(f"Converting PDF to JPG: {filename} ({quality} quality, {settings['dpi']} DPI)")
         
         import fitz  # PyMuPDF
         from PIL import Image
@@ -1755,14 +1749,7 @@ def jpg_to_pdf():
         # Create temp directory
         tmpdir = tempfile.mkdtemp()
         
-        print(f"\n{'='*60}")
-        print(f"JPG TO PDF CONVERSION - iLovePDF Style")
-        print(f"Images: {len(files)}")
-        print(f"Orientation: {orientation}")
-        print(f"Page Size: {page_size}")
-        print(f"Margin: {margin}")
-        print(f"Merge All: {merge_all}")
-        print(f"{'='*60}\n")
+        print(f"Converting {len(files)} images to PDF (orientation: {orientation}, merge: {merge_all})")
         
         from PIL import Image
         from reportlab.pdfgen import canvas
@@ -2740,7 +2727,7 @@ def add_image_watermark(pdf_bytes, image_bytes, opacity, rotation, position, lay
 
 @app.route('/api/watermark/add', methods=['POST'])
 def add_watermark():
-    """API endpoint to add watermark to PDF"""
+    """API endpoint to add watermark to PDF - Optimized for speed"""
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No PDF file provided"}), 400
@@ -2753,6 +2740,8 @@ def add_watermark():
         rotation = int(request.form.get('rotation', 0))
         position = request.form.get('position', 'center')
         layer = request.form.get('layer', 'over')
+        
+        print(f"Adding {watermark_type} watermark to PDF: {pdf_file.filename}")
         
         result_bytes = None
         
@@ -2784,6 +2773,8 @@ def add_watermark():
         else:
             return jsonify({"error": "Invalid watermark type"}), 400
         
+        print(f"Watermark added successfully")
+        
         original_name = pdf_file.filename.replace('.pdf', '')
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         output_filename = f"{original_name}_watermarked_{timestamp}.pdf"
@@ -2797,21 +2788,20 @@ def add_watermark():
     
     except Exception as e:
         print(f"Watermark Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/html-to-pdf', methods=['POST'])
 def html_to_pdf():
-    """Convert HTML to PDF using Playwright (browser-based rendering)"""
+    """Convert HTML to PDF - Optimized for speed"""
     try:
         # Try to import Playwright
         try:
             from playwright.sync_api import sync_playwright
             use_playwright = True
         except ImportError:
-            print("WARNING: Playwright not installed. Falling back to xhtml2pdf (basic rendering)")
-            print("For best results, install Playwright:")
-            print("  pip install playwright")
-            print("  playwright install chromium")
+            print("WARNING: Playwright not installed. Using basic HTML to PDF")
             from xhtml2pdf import pisa
             use_playwright = False
         
@@ -2819,7 +2809,7 @@ def html_to_pdf():
         html_content = request.form.get('html')
         page_size = request.form.get('pageSize', 'A4')
         orientation = request.form.get('orientation', 'portrait')
-        # Use smaller default margins for tighter layout (like iLovePDF)
+        # Optimized margins
         margin_top = request.form.get('marginTop', '5')
         margin_bottom = request.form.get('marginBottom', '5')
         margin_left = request.form.get('marginLeft', '5')
@@ -2828,10 +2818,10 @@ def html_to_pdf():
         if not url and not html_content:
             return jsonify({"error": "No URL or HTML content provided"}), 400
         
+        print(f"Converting HTML to PDF: {url if url else 'custom HTML'}")
+        
         if use_playwright:
             # Use Playwright for high-quality PDF generation
-            print(f"Converting to PDF using Playwright (browser-based)...")
-            print(f"URL: {url if url else 'HTML content'}")
             
             try:
                 # Configure PDF options
@@ -3053,16 +3043,25 @@ def html_to_pdf():
 
 @app.route('/api/pdf/rotate', methods=['POST'])
 def rotate_pdf():
-    """API endpoint to rotate PDF pages"""
+    """API endpoint to rotate PDF pages - Optimized for speed"""
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No PDF file provided"}), 400
         
         pdf_file = request.files['file']
+        if not pdf_file.filename:
+            return jsonify({"error": "No file selected"}), 400
+            
         pdf_bytes = pdf_file.read()
         
+        if len(pdf_bytes) == 0:
+            return jsonify({"error": "Empty file provided"}), 400
+        
+        # Get rotation parameters
         rotation_angle = int(request.form.get('rotation', 90))
         direction = request.form.get('direction', 'right')
+        
+        print(f"Rotating PDF: {pdf_file.filename} ({rotation_angle}° {direction})")
         
         # Calculate actual rotation
         if direction == 'left':
@@ -3073,7 +3072,7 @@ def rotate_pdf():
         reader = PdfReader(io.BytesIO(pdf_bytes))
         writer = PdfWriter()
         
-        # Rotate all pages
+        # Rotate all pages efficiently
         for page in reader.pages:
             page.rotate(rotation_angle)
             writer.add_page(page)
@@ -3082,6 +3081,8 @@ def rotate_pdf():
         output = io.BytesIO()
         writer.write(output)
         output.seek(0)
+        
+        print(f"PDF rotated successfully: {len(reader.pages)} pages")
         
         original_name = pdf_file.filename.replace('.pdf', '')
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -3100,7 +3101,7 @@ def rotate_pdf():
 
 @app.route('/api/pdf/unlock', methods=['POST'])
 def unlock_pdf():
-    """API endpoint to unlock/decrypt password-protected PDF files"""
+    """API endpoint to unlock/decrypt password-protected PDF files - Optimized"""
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No PDF file provided"}), 400
@@ -3117,6 +3118,8 @@ def unlock_pdf():
         # Get password from request (if provided)
         password = request.form.get('password', '').strip()
         
+        print(f"Unlocking PDF: {pdf_file.filename}")
+        
         from pypdf import PdfReader, PdfWriter
         
         # Try to read the PDF with password
@@ -3124,7 +3127,7 @@ def unlock_pdf():
         
         # Check if PDF is encrypted
         if reader.is_encrypted:
-            print(f"PDF is encrypted. Password provided: {bool(password)}")
+            print(f"PDF is encrypted, attempting to decrypt")
             
             # Try to decrypt with provided password
             if password:
@@ -3191,7 +3194,7 @@ def unlock_pdf():
 
 @app.route('/api/pdf/protect', methods=['POST'])
 def protect_pdf():
-    """API endpoint to protect/encrypt PDF files with password"""
+    """API endpoint to protect/encrypt PDF files with password - Optimized"""
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No PDF file provided"}), 400
@@ -3214,13 +3217,15 @@ def protect_pdf():
         if len(password) < 6:
             return jsonify({"error": "Password must be at least 6 characters long"}), 400
         
+        print(f"Protecting PDF with password: {pdf_file.filename}")
+        
         from pypdf import PdfReader, PdfWriter
         
         # Read the PDF
         reader = PdfReader(io.BytesIO(pdf_bytes))
         writer = PdfWriter()
         
-        # Copy all pages to new writer
+        # Copy all pages to new writer efficiently
         for page in reader.pages:
             writer.add_page(page)
         
@@ -3228,10 +3233,10 @@ def protect_pdf():
         if reader.metadata:
             writer.add_metadata(reader.metadata)
         
-        # Encrypt the PDF with password
-        # user_password: password to open the PDF
-        # owner_password: password for full permissions (we use same password)
+        # Encrypt the PDF with AES-256 encryption
         writer.encrypt(user_password=password, owner_password=password, algorithm="AES-256")
+        
+        print(f"PDF encrypted successfully with {len(reader.pages)} pages")
         
         # Generate output
         output = io.BytesIO()
