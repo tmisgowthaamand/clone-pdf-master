@@ -31,6 +31,11 @@ import base64
 import uuid
 import json
 from PIL import Image, ImageDraw, ImageFont
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+from reportlab.lib.colors import HexColor
+from datetime import datetime
+import requests
 
 app = Flask(__name__, template_folder='../frontend/templates')
 app.secret_key = os.urandom(24)  # For session management
@@ -2402,11 +2407,830 @@ def apply_signatures_to_pdf():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+def hex_to_rgb(hex_color):
+    """Convert hex color to RGB tuple"""
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+
+def add_text_watermark(pdf_bytes, text, font_size, color, opacity, rotation, position, 
+                       font_family='Arial', is_bold=True, is_italic=False, is_underline=False, layer='over'):
+    """Add text watermark to PDF with formatting options"""
+    from pypdf import PdfReader, PdfWriter
+    
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    writer = PdfWriter()
+    
+    # Position mapping - adjusted for proper placement
+    pos_map = {
+        "center": (0, 0),
+        "top-left": (-250, 250),
+        "top-center": (0, 250),
+        "top-right": (250, 250),
+        "middle-left": (-250, 0),
+        "middle-right": (250, 0),
+        "bottom-left": (-250, -250),
+        "bottom-center": (0, -250),
+        "bottom-right": (250, -250),
+        "tile": None
+    }
+    
+    is_tile = position == "tile"
+    is_mosaic = position == "mosaic"
+    is_diagonal = position == "diagonal"
+    
+    # Map font families to ReportLab fonts
+    font_map = {
+        'Arial': 'Helvetica',
+        'Times New Roman': 'Times-Roman',
+        'Courier New': 'Courier',
+        'Georgia': 'Times-Roman',
+        'Verdana': 'Helvetica',
+        'Comic Sans MS': 'Helvetica',
+        'Impact': 'Helvetica-Bold',
+        'Trebuchet MS': 'Helvetica',
+    }
+    
+    base_font = font_map.get(font_family, 'Helvetica')
+    
+    # Apply bold and italic
+    if is_bold and is_italic:
+        if base_font == 'Times-Roman':
+            font_name = 'Times-BoldItalic'
+        elif base_font in ['Helvetica', 'Courier']:
+            font_name = f"{base_font}-BoldOblique"
+        else:
+            font_name = f"{base_font}-Bold"
+    elif is_bold:
+        if base_font == 'Times-Roman':
+            font_name = 'Times-Bold'
+        else:
+            font_name = f"{base_font}-Bold"
+    elif is_italic:
+        if base_font == 'Times-Roman':
+            font_name = 'Times-Italic'
+        elif base_font in ['Helvetica', 'Courier']:
+            font_name = f"{base_font}-Oblique"
+        else:
+            font_name = f"{base_font}-Italic"
+    else:
+        font_name = base_font
+    
+    for page in reader.pages:
+        packet = io.BytesIO()
+        can = canvas.Canvas(packet, pagesize=(float(page.mediabox.width), float(page.mediabox.height)))
+        w, h = float(page.mediabox.width), float(page.mediabox.height)
+        
+        # Set color and opacity
+        r, g, b = hex_to_rgb(color)
+        can.setFillColorRGB(r, g, b, alpha=opacity)
+        
+        try:
+            can.setFont(font_name, font_size)
+        except:
+            can.setFont("Helvetica-Bold", font_size)
+        
+        # Calculate text width for better positioning
+        text_width = can.stringWidth(text, font_name, font_size)
+        text_height = font_size
+        
+        # Calculate position offsets based on page size (like iLovePDF)
+        margin_x = text_width / 2 + 20  # Dynamic margin based on text width
+        margin_y = text_height / 2 + 20  # Dynamic margin based on text height
+        
+        pos_map = {
+            "center": (w/2, h/2),
+            "top-left": (margin_x, h - margin_y),
+            "top-center": (w/2, h - margin_y),
+            "top-right": (w - margin_x, h - margin_y),
+            "middle-left": (margin_x, h/2),
+            "middle-right": (w - margin_x, h/2),
+            "bottom-left": (margin_x, margin_y),
+            "bottom-center": (w/2, margin_y),
+            "bottom-right": (w - margin_x, margin_y),
+        }
+        
+        if is_tile:
+            spacing_x = 250
+            spacing_y = 150
+            for x in range(-int(w), int(w*2), spacing_x):
+                for y in range(-int(h), int(h*2), spacing_y):
+                    can.saveState()
+                    can.translate(w/2 + x, h/2 + y)
+                    can.rotate(rotation)
+                    can.drawCentredString(0, 0, text)
+                    if is_underline:
+                        text_width = can.stringWidth(text, font_name, font_size)
+                        can.line(-text_width/2, -font_size*0.1, text_width/2, -font_size*0.1)
+                    can.restoreState()
+        elif is_mosaic:
+            # Mosaic pattern - 3x3 grid aligned from top to bottom
+            margin_top = font_size / 2 + 10  # Small margin at top
+            margin_bottom = font_size / 2 + 10  # Small margin at bottom
+            usable_height = h - margin_top - margin_bottom
+            
+            for row in range(3):
+                for col in range(3):
+                    x_pos = (col + 0.5) * w / 3
+                    # Align from top to bottom with minimal margins
+                    y_pos = h - margin_top - (row * usable_height / 2)
+                    can.saveState()
+                    can.translate(x_pos, y_pos)
+                    can.rotate(rotation)
+                    can.drawCentredString(0, 0, text)
+                    if is_underline:
+                        text_width = can.stringWidth(text, font_name, font_size)
+                        can.line(-text_width/2, -font_size*0.1, text_width/2, -font_size*0.1)
+                    can.restoreState()
+        elif is_diagonal:
+            # Diagonal watermark from bottom-left to top-right
+            import math
+            diagonal_length = math.sqrt(w**2 + h**2)
+            angle = math.degrees(math.atan2(h, w))
+            
+            can.saveState()
+            can.translate(w/2, h/2)
+            can.rotate(angle + rotation)
+            can.drawCentredString(0, 0, text)
+            if is_underline:
+                text_width = can.stringWidth(text, font_name, font_size)
+                can.line(-text_width/2, -font_size*0.1, text_width/2, -font_size*0.1)
+            can.restoreState()
+        else:
+            # Get position coordinates
+            x_pos, y_pos = pos_map.get(position, (w/2, h/2))
+            can.saveState()
+            can.translate(x_pos, y_pos)
+            can.rotate(rotation)
+            can.drawCentredString(0, 0, text)
+            if is_underline:
+                text_width = can.stringWidth(text, font_name, font_size)
+                can.line(-text_width/2, -font_size*0.1, text_width/2, -font_size*0.1)
+            can.restoreState()
+        
+        can.showPage()
+        can.save()
+        packet.seek(0)
+        
+        watermark = PdfReader(packet).pages[0]
+        if layer == 'below':
+            # Watermark below content - merge page onto watermark
+            new_page = writer.add_page(watermark)
+            new_page.merge_page(page)
+        else:
+            # Watermark over content (default) - merge watermark onto page
+            new_page = writer.add_page(page)
+            new_page.merge_page(watermark)
+    
+    output = io.BytesIO()
+    writer.write(output)
+    return output.getvalue()
+
+def add_image_watermark(pdf_bytes, image_bytes, opacity, rotation, position, layer='over'):
+    """Add image watermark to PDF"""
+    from pypdf import PdfReader, PdfWriter
+    
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    writer = PdfWriter()
+    
+    # Load and process image
+    img = Image.open(io.BytesIO(image_bytes))
+    
+    if img.mode != 'RGBA':
+        img = img.convert('RGBA')
+    
+    alpha = img.split()[3]
+    alpha = alpha.point(lambda p: int(p * opacity))
+    img.putalpha(alpha)
+    
+    is_tile = position == "tile"
+    is_mosaic = position == "mosaic"
+    is_diagonal = position == "diagonal"
+    
+    max_size = 200
+    img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+    img_width, img_height = img.size
+    
+    for page in reader.pages:
+        packet = io.BytesIO()
+        can = canvas.Canvas(packet, pagesize=(float(page.mediabox.width), float(page.mediabox.height)))
+        w, h = float(page.mediabox.width), float(page.mediabox.height)
+        
+        # Calculate position offsets based on image size (like iLovePDF)
+        margin_x = img_width / 2 + 20  # Dynamic margin based on image width
+        margin_y = img_height / 2 + 20  # Dynamic margin based on image height
+        
+        pos_map = {
+            "center": (w/2, h/2),
+            "top-left": (margin_x, h - margin_y),
+            "top-center": (w/2, h - margin_y),
+            "top-right": (w - margin_x, h - margin_y),
+            "middle-left": (margin_x, h/2),
+            "middle-right": (w - margin_x, h/2),
+            "bottom-left": (margin_x, margin_y),
+            "bottom-center": (w/2, margin_y),
+            "bottom-right": (w - margin_x, margin_y),
+        }
+        
+        img_buffer = io.BytesIO()
+        img.save(img_buffer, format='PNG')
+        img_buffer.seek(0)
+        img_reader = ImageReader(img_buffer)
+        
+        if is_tile:
+            spacing_x = 300
+            spacing_y = 250
+            for x in range(-int(w), int(w*2), spacing_x):
+                for y in range(-int(h), int(h*2), spacing_y):
+                    can.saveState()
+                    can.translate(w/2 + x, h/2 + y)
+                    can.rotate(rotation)
+                    can.drawImage(img_reader, -img_width/2, -img_height/2, 
+                                width=img_width, height=img_height, mask='auto')
+                    can.restoreState()
+        elif is_mosaic:
+            # Mosaic pattern - 3x3 grid aligned from top to bottom
+            margin_top = img_height / 2 + 10  # Small margin at top
+            margin_bottom = img_height / 2 + 10  # Small margin at bottom
+            usable_height = h - margin_top - margin_bottom
+            
+            for row in range(3):
+                for col in range(3):
+                    x_pos = (col + 0.5) * w / 3
+                    # Align from top to bottom with minimal margins
+                    y_pos = h - margin_top - (row * usable_height / 2)
+                    can.saveState()
+                    can.translate(x_pos, y_pos)
+                    can.rotate(rotation)
+                    can.drawImage(img_reader, -img_width/2, -img_height/2,
+                                width=img_width, height=img_height, mask='auto')
+                    can.restoreState()
+        elif is_diagonal:
+            # Diagonal watermark from bottom-left to top-right
+            import math
+            angle = math.degrees(math.atan2(h, w))
+            
+            can.saveState()
+            can.translate(w/2, h/2)
+            can.rotate(angle + rotation)
+            can.drawImage(img_reader, -img_width/2, -img_height/2,
+                        width=img_width, height=img_height, mask='auto')
+            can.restoreState()
+        else:
+            # Get position coordinates
+            x_pos, y_pos = pos_map.get(position, (w/2, h/2))
+            can.saveState()
+            can.translate(x_pos, y_pos)
+            can.rotate(rotation)
+            can.drawImage(img_reader, -img_width/2, -img_height/2,
+                        width=img_width, height=img_height, mask='auto')
+            can.restoreState()
+        
+        can.showPage()
+        can.save()
+        packet.seek(0)
+        
+        watermark = PdfReader(packet).pages[0]
+        if layer == 'below':
+            # Watermark below content - merge page onto watermark
+            new_page = writer.add_page(watermark)
+            new_page.merge_page(page)
+        else:
+            # Watermark over content (default) - merge watermark onto page
+            new_page = writer.add_page(page)
+            new_page.merge_page(watermark)
+    
+    output = io.BytesIO()
+    writer.write(output)
+    return output.getvalue()
+
+@app.route('/api/watermark/add', methods=['POST'])
+def add_watermark():
+    """API endpoint to add watermark to PDF"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No PDF file provided"}), 400
+        
+        pdf_file = request.files['file']
+        pdf_bytes = pdf_file.read()
+        
+        watermark_type = request.form.get('watermarkType', 'text')
+        opacity = float(request.form.get('opacity', 0.5))
+        rotation = int(request.form.get('rotation', 0))
+        position = request.form.get('position', 'center')
+        layer = request.form.get('layer', 'over')
+        
+        result_bytes = None
+        
+        if watermark_type == 'text':
+            text = request.form.get('text', 'CONFIDENTIAL')
+            font_size = int(request.form.get('fontSize', 40))
+            color = request.form.get('color', '#000000')
+            font_family = request.form.get('fontFamily', 'Arial')
+            is_bold = request.form.get('isBold', 'true').lower() == 'true'
+            is_italic = request.form.get('isItalic', 'false').lower() == 'true'
+            is_underline = request.form.get('isUnderline', 'false').lower() == 'true'
+            
+            result_bytes = add_text_watermark(
+                pdf_bytes, text, font_size, color, opacity, rotation, position,
+                font_family, is_bold, is_italic, is_underline, layer
+            )
+        
+        elif watermark_type == 'image':
+            if 'watermarkImage' not in request.files:
+                return jsonify({"error": "No watermark image provided"}), 400
+            
+            image_file = request.files['watermarkImage']
+            image_bytes = image_file.read()
+            
+            result_bytes = add_image_watermark(
+                pdf_bytes, image_bytes, opacity, rotation, position, layer
+            )
+        
+        else:
+            return jsonify({"error": "Invalid watermark type"}), 400
+        
+        original_name = pdf_file.filename.replace('.pdf', '')
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_filename = f"{original_name}_watermarked_{timestamp}.pdf"
+        
+        return send_file(
+            io.BytesIO(result_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=output_filename
+        )
+    
+    except Exception as e:
+        print(f"Watermark Error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/html-to-pdf', methods=['POST'])
+def html_to_pdf():
+    """Convert HTML to PDF using Playwright (browser-based rendering)"""
+    try:
+        # Try to import Playwright
+        try:
+            from playwright.sync_api import sync_playwright
+            use_playwright = True
+        except ImportError:
+            print("WARNING: Playwright not installed. Falling back to xhtml2pdf (basic rendering)")
+            print("For best results, install Playwright:")
+            print("  pip install playwright")
+            print("  playwright install chromium")
+            from xhtml2pdf import pisa
+            use_playwright = False
+        
+        url = request.form.get('url')
+        html_content = request.form.get('html')
+        page_size = request.form.get('pageSize', 'A4')
+        orientation = request.form.get('orientation', 'portrait')
+        # Use smaller default margins for tighter layout (like iLovePDF)
+        margin_top = request.form.get('marginTop', '5')
+        margin_bottom = request.form.get('marginBottom', '5')
+        margin_left = request.form.get('marginLeft', '5')
+        margin_right = request.form.get('marginRight', '5')
+        
+        if not url and not html_content:
+            return jsonify({"error": "No URL or HTML content provided"}), 400
+        
+        if use_playwright:
+            # Use Playwright for high-quality PDF generation
+            print(f"Converting to PDF using Playwright (browser-based)...")
+            print(f"URL: {url if url else 'HTML content'}")
+            
+            try:
+                # Configure PDF options
+                pdf_options = {
+                    'format': page_size,
+                    'landscape': orientation == 'landscape',
+                    'margin': {
+                        'top': f'{margin_top}mm',
+                        'bottom': f'{margin_bottom}mm',
+                        'left': f'{margin_left}mm',
+                        'right': f'{margin_right}mm'
+                    },
+                    'print_background': True,  # Include background colors and images
+                    'prefer_css_page_size': False,
+                    'scale': 1.0,  # Full scale
+                }
+                
+                # Generate PDF using Playwright
+                print("Launching Playwright browser...")
+                with sync_playwright() as p:
+                    # Launch browser
+                    browser = p.chromium.launch(headless=True)
+                    print("Browser launched successfully")
+                    page = browser.new_page()
+                    
+                    # Set viewport to ensure proper rendering
+                    page.set_viewport_size({"width": 1920, "height": 1080})
+                    
+                    if url:
+                        # Navigate to URL and wait for everything to load
+                        print(f"Loading URL: {url}")
+                        page.goto(url, wait_until='load', timeout=30000)
+                        
+                        # Wait for network to be idle (all resources loaded)
+                        print("Waiting for network idle...")
+                        page.wait_for_load_state('networkidle', timeout=10000)
+                        
+                        # Scroll to trigger lazy-loaded images
+                        print("Scrolling to load lazy images...")
+                        try:
+                            # Scroll to bottom
+                            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                            page.wait_for_timeout(1000)
+                            # Scroll back to top
+                            page.evaluate("window.scrollTo(0, 0)")
+                            page.wait_for_timeout(500)
+                        except Exception as scroll_error:
+                            print(f"Scroll error (non-fatal): {scroll_error}")
+                        
+                        # Wait for all images to load
+                        print("Waiting for images to load...")
+                        try:
+                            page.wait_for_load_state('domcontentloaded')
+                            # Give images time to load
+                            page.wait_for_timeout(2000)
+                        except Exception as img_error:
+                            print(f"Image wait error (non-fatal): {img_error}")
+                        
+                        # Additional wait for dynamic content
+                        print("Final wait for dynamic content...")
+                        page.wait_for_timeout(1000)
+                    else:
+                        # Set HTML content
+                        print(f"Setting HTML content ({len(html_content)} chars)")
+                        page.set_content(html_content, wait_until='networkidle')
+                        page.wait_for_timeout(1000)
+                    
+                    # Emulate print media for better PDF rendering
+                    print("Emulating print media...")
+                    page.emulate_media(media='print')
+                    
+                    # Inject CSS to optimize for PDF (hide unnecessary elements)
+                    print("Injecting print optimization CSS...")
+                    page.add_style_tag(content="""
+                        @media print {
+                            /* Hide common elements that create extra pages */
+                            footer, .footer, #footer,
+                            nav, .nav, .navigation,
+                            .sidebar, .side-bar,
+                            .advertisement, .ad, .ads,
+                            .social-share, .share-buttons,
+                            .comments, .comment-section,
+                            .related-posts, .related-content,
+                            .newsletter, .subscribe,
+                            .cookie-banner, .cookie-notice,
+                            header.site-header,
+                            .back-to-top {
+                                display: none !important;
+                            }
+                            
+                            /* Optimize page breaks */
+                            body {
+                                margin: 0 !important;
+                                padding: 0 !important;
+                            }
+                            
+                            /* Prevent page breaks in the middle of content */
+                            h1, h2, h3, h4, h5, h6 {
+                                page-break-after: avoid !important;
+                            }
+                            
+                            img {
+                                page-break-inside: avoid !important;
+                            }
+                            
+                        }
+                    """)
+                    
+                    # Execute JavaScript to limit to ~2 pages of content
+                    print("Limiting content to 2 pages...")
+                    page.evaluate("""
+                        () => {
+                            // Find all major sections
+                            const sections = document.querySelectorAll('section, article, .section, [role="main"] > div');
+                            
+                            // Keep only first 2-3 sections (usually covers 2 pages)
+                            let keepCount = 0;
+                            const maxSections = 2; // Keep first 2 major sections
+                            
+                            sections.forEach((section, index) => {
+                                // Check if section has substantial content
+                                const hasContent = section.textContent.trim().length > 100;
+                                
+                                if (hasContent) {
+                                    keepCount++;
+                                    if (keepCount > maxSections) {
+                                        section.style.display = 'none';
+                                    }
+                                }
+                            });
+                            
+                            // Also hide specific text patterns that indicate extra sections
+                            const allElements = document.querySelectorAll('*');
+                            allElements.forEach(el => {
+                                const text = el.textContent.trim();
+                                // Hide sections with these keywords
+                                if (text.includes('Download') || 
+                                    text.includes('Buy Prince') ||
+                                    text.includes('Invoices') ||
+                                    text.includes('Samples') && text.length < 50) {
+                                    // Only hide if it's a heading/section, not if it's within content
+                                    if (el.tagName.match(/^H[1-6]$/) || el.classList.contains('section')) {
+                                        const parent = el.closest('section, article, div[class*="section"]');
+                                        if (parent) parent.style.display = 'none';
+                                    }
+                                }
+                            });
+                        }
+                    """)
+                    
+                    # Generate PDF
+                    print(f"Generating PDF with options: {pdf_options}")
+                    pdf_bytes = page.pdf(**pdf_options)
+                    
+                    browser.close()
+                    print("Browser closed")
+                
+                output = io.BytesIO(pdf_bytes)
+                pdf_size = len(pdf_bytes)
+                
+            except Exception as playwright_error:
+                print(f"Playwright error: {str(playwright_error)}")
+                import traceback
+                traceback.print_exc()
+                print("Falling back to xhtml2pdf...")
+                # Fall back to xhtml2pdf if Playwright fails
+                use_playwright = False
+        
+        if not use_playwright:
+            # Fallback to xhtml2pdf (basic rendering)
+            print(f"Converting to PDF using xhtml2pdf (basic rendering)...")
+            
+            # Get HTML
+            if url:
+                response = requests.get(url, timeout=30, headers={'User-Agent': 'Mozilla/5.0'})
+                response.raise_for_status()
+                html_string = response.text
+            else:
+                html_string = html_content
+            
+            # Simple conversion
+            output = io.BytesIO()
+            pisa.CreatePDF(html_string, dest=output, encoding='utf-8')
+            pdf_size = len(output.getvalue())
+        
+        output.seek(0)
+        
+        # Check if PDF was generated
+        print(f"Generated PDF size: {pdf_size} bytes")
+        
+        if pdf_size == 0:
+            raise Exception("PDF generation failed - output is empty")
+        
+        # Generate filename
+        if url:
+            from urllib.parse import urlparse
+            hostname = urlparse(url).hostname or 'webpage'
+            filename = f"{hostname}.pdf"
+        else:
+            filename = f"converted_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        
+        print(f"Sending PDF: {filename} ({pdf_size} bytes)")
+        
+        return send_file(
+            output,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+    
+    except requests.exceptions.RequestException as e:
+        print(f"URL Fetch Error: {str(e)}")
+        return jsonify({"error": f"Failed to fetch URL: {str(e)}"}), 400
+    except Exception as e:
+        print(f"HTML to PDF Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/pdf/rotate', methods=['POST'])
+def rotate_pdf():
+    """API endpoint to rotate PDF pages"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No PDF file provided"}), 400
+        
+        pdf_file = request.files['file']
+        pdf_bytes = pdf_file.read()
+        
+        rotation_angle = int(request.form.get('rotation', 90))
+        direction = request.form.get('direction', 'right')
+        
+        # Calculate actual rotation
+        if direction == 'left':
+            rotation_angle = 360 - rotation_angle
+        
+        from pypdf import PdfReader, PdfWriter
+        
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        writer = PdfWriter()
+        
+        # Rotate all pages
+        for page in reader.pages:
+            page.rotate(rotation_angle)
+            writer.add_page(page)
+        
+        # Generate output
+        output = io.BytesIO()
+        writer.write(output)
+        output.seek(0)
+        
+        original_name = pdf_file.filename.replace('.pdf', '')
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_filename = f"{original_name}_rotated_{timestamp}.pdf"
+        
+        return send_file(
+            output,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=output_filename
+        )
+    
+    except Exception as e:
+        print(f"Rotation Error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/pdf/unlock', methods=['POST'])
+def unlock_pdf():
+    """API endpoint to unlock/decrypt password-protected PDF files"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No PDF file provided"}), 400
+        
+        pdf_file = request.files['file']
+        if not pdf_file.filename:
+            return jsonify({"error": "No file selected"}), 400
+            
+        pdf_bytes = pdf_file.read()
+        
+        if len(pdf_bytes) == 0:
+            return jsonify({"error": "Empty file provided"}), 400
+        
+        # Get password from request (if provided)
+        password = request.form.get('password', '').strip()
+        
+        from pypdf import PdfReader, PdfWriter
+        
+        # Try to read the PDF with password
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        
+        # Check if PDF is encrypted
+        if reader.is_encrypted:
+            print(f"PDF is encrypted. Password provided: {bool(password)}")
+            
+            # Try to decrypt with provided password
+            if password:
+                try:
+                    decrypt_result = reader.decrypt(password)
+                    print(f"Decrypt result: {decrypt_result}")
+                    
+                    # decrypt_result: 0 = failed, 1 = user password, 2 = owner password
+                    if decrypt_result == 0:
+                        return jsonify({
+                            "error": "Incorrect password. Please try again.",
+                            "needsPassword": True
+                        }), 400
+                    
+                    print(f"Successfully decrypted with password (result: {decrypt_result})")
+                except Exception as decrypt_err:
+                    print(f"Decryption exception: {str(decrypt_err)}")
+                    return jsonify({
+                        "error": "Incorrect password. Please try again.",
+                        "needsPassword": True
+                    }), 400
+            else:
+                return jsonify({
+                    "error": "This PDF is password-protected. Please provide the password.",
+                    "needsPassword": True
+                }), 400
+        else:
+            print("PDF is not encrypted, proceeding with unlock")
+        
+        # Create a new PDF without encryption
+        writer = PdfWriter()
+        
+        # Copy all pages to new writer (without encryption)
+        for page in reader.pages:
+            writer.add_page(page)
+        
+        # Copy metadata if available
+        if reader.metadata:
+            writer.add_metadata(reader.metadata)
+        
+        # Generate output
+        output = io.BytesIO()
+        writer.write(output)
+        output.seek(0)
+        
+        original_name = pdf_file.filename.replace('.pdf', '')
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_filename = f"{original_name}_unlocked_{timestamp}.pdf"
+        
+        print(f"Successfully unlocked PDF: {output_filename}")
+        
+        return send_file(
+            output,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=output_filename
+        )
+    
+    except Exception as e:
+        print(f"Unlock PDF Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to process PDF: {str(e)}"}), 500
+
+@app.route('/api/pdf/protect', methods=['POST'])
+def protect_pdf():
+    """API endpoint to protect/encrypt PDF files with password"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No PDF file provided"}), 400
+        
+        pdf_file = request.files['file']
+        if not pdf_file.filename:
+            return jsonify({"error": "No file selected"}), 400
+            
+        pdf_bytes = pdf_file.read()
+        
+        if len(pdf_bytes) == 0:
+            return jsonify({"error": "Empty file provided"}), 400
+        
+        # Get password from request
+        password = request.form.get('password', '').strip()
+        
+        if not password:
+            return jsonify({"error": "Password is required"}), 400
+        
+        if len(password) < 6:
+            return jsonify({"error": "Password must be at least 6 characters long"}), 400
+        
+        from pypdf import PdfReader, PdfWriter
+        
+        # Read the PDF
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        writer = PdfWriter()
+        
+        # Copy all pages to new writer
+        for page in reader.pages:
+            writer.add_page(page)
+        
+        # Copy metadata if available
+        if reader.metadata:
+            writer.add_metadata(reader.metadata)
+        
+        # Encrypt the PDF with password
+        # user_password: password to open the PDF
+        # owner_password: password for full permissions (we use same password)
+        writer.encrypt(user_password=password, owner_password=password, algorithm="AES-256")
+        
+        # Generate output
+        output = io.BytesIO()
+        writer.write(output)
+        output.seek(0)
+        
+        original_name = pdf_file.filename.replace('.pdf', '')
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_filename = f"{original_name}_protected_{timestamp}.pdf"
+        
+        print(f"Successfully protected PDF: {output_filename}")
+        
+        return send_file(
+            output,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=output_filename
+        )
+    
+    except Exception as e:
+        print(f"Protect PDF Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to protect PDF: {str(e)}"}), 500
+
 if __name__ == '__main__':
     print("Starting PowerPoint to PDF Converter API")
     print("Server: http://localhost:5000")
     print("API: http://localhost:5000/api/convert/pptx-to-pdf")
     print("Sign PDF: http://localhost:5000/api/sign/apply-signatures")
+    print("Watermark PDF: http://localhost:5000/api/watermark/add")
+    print("Rotate PDF: http://localhost:5000/api/pdf/rotate")
+    print("Unlock PDF: http://localhost:5000/api/pdf/unlock")
+    print("Protect PDF: http://localhost:5000/api/pdf/protect")
     print("\nMake sure LibreOffice is installed!")
     app.run(host='0.0.0.0', port=5000, debug=True)
 

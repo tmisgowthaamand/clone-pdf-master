@@ -1,6 +1,27 @@
-# React + TypeScript + Vite
+# React + TypeScript + Vite + Tailwind CSS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This template provides a minimal setup to get React working in Vite with HMR, Tailwind CSS, and some ESLint rules.
+
+## 🎨 Tailwind CSS Setup
+
+This project uses Tailwind CSS with PostCSS. The configuration includes:
+- **Tailwind CSS** for utility-first styling
+- **PostCSS** for processing Tailwind directives
+- **Autoprefixer** for browser compatibility
+
+### CSS Validation Warnings (RESOLVED)
+
+VS Code may show warnings about "Unknown at rule @tailwind" and "@apply". These warnings are **safe to ignore** and have been resolved by:
+
+1. **Disabling CSS validation** in `.vscode/settings.json`
+2. **Configuring file associations** to treat CSS files as Tailwind CSS
+3. **Recommended extensions** in `.vscode/extensions.json`:
+   - Tailwind CSS IntelliSense (`bradlc.vscode-tailwindcss`)
+   - PostCSS Language Support (`csstools.postcss`)
+
+**If you still see warnings:**
+- Reload VS Code: `Ctrl+Shift+P` → "Reload Window"
+- Install recommended extensions: `Ctrl+Shift+P` → "Extensions: Show Recommended Extensions"
 
 Currently, two official plugins are available:
 

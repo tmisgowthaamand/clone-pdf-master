@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { ToolCard } from "@/components/ToolCard";
 import { CategoryTabs } from "@/components/CategoryTabs";
+import { AnimatedText } from "@/components/AnimatedText";
 import { Button } from "@/components/ui/button";
 import {
   Combine,
@@ -185,21 +186,21 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/10" style={{ willChange: 'auto' }}>
       {/* Header with Enhanced Animations */}
       <header className="border-b border-border/50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-50 animate-slide-in-left shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 group cursor-pointer">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-lg group-hover:shadow-xl animate-gradient">
-              <FileText className="w-6 h-6 text-white transition-transform duration-300 group-hover:scale-110" />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3 group cursor-pointer">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-11 lg:h-11 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-lg group-hover:shadow-xl animate-gradient">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white transition-transform duration-300 group-hover:scale-110" />
             </div>
-            <span className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient">
+            <span className="text-lg sm:text-xl lg:text-2xl font-extrabold bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 bg-clip-text text-transparent animate-gradient">
               PDFTools
             </span>
           </div>
-          <div className="flex items-center gap-3 animate-slide-in-right">
-            <Button variant="ghost" size="sm" className="hover:scale-105 transition-transform duration-300 font-semibold">Login</Button>
-            <Button size="sm" className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-gradient font-semibold text-white">
+          <div className="flex items-center gap-2 sm:gap-3 animate-slide-in-right">
+            <Button variant="ghost" size="sm" className="hover:scale-105 transition-transform duration-300 font-semibold text-xs sm:text-sm hidden sm:inline-flex">Login</Button>
+            <Button size="sm" className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-gradient font-semibold text-white text-xs sm:text-sm px-3 sm:px-4">
               Sign up
             </Button>
           </div>
@@ -207,7 +208,7 @@ const Index = () => {
       </header>
 
       {/* Hero Section with Premium Design */}
-      <section className="container mx-auto px-4 py-20 md:py-28 text-center relative overflow-hidden bg-gradient-to-b from-blue-50/50 via-purple-50/30 to-pink-50/50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-28 text-center relative overflow-hidden bg-mesh-gradient bg-animated-grid">
         {/* Animated Background Blobs with Float Effect */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/30 to-purple-400/30 rounded-full blur-3xl animate-float"></div>
@@ -234,17 +235,30 @@ const Index = () => {
           <Sparkles className="absolute top-1/4 right-1/4 w-10 h-10 text-yellow-500/15 animate-spin-slow" style={{animationDelay: '1.5s'}} />
         </div>
         
-        <h1 className="text-5xl md:text-6xl lg:text-7xl font-black mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight animate-blur-in animate-gradient tracking-tight">
-          Every tool you need to work with PDFs
+        <h1 className="text-5xl md:text-6xl lg:text-7xl font-black mb-6 holographic leading-tight animate-blur-in tracking-tight perspective-container">
+          <span className="layer-3d-3">Every tool you need to work with PDFs</span>
         </h1>
-        <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8 leading-relaxed animate-slide-up-fade font-normal" style={{animationDelay: '0.2s'}}>
-          All the PDF tools you need at your fingertips. <span className="font-semibold">100% free and easy to use!</span> Merge, split, compress, convert, rotate, and secure PDFs with just a few clicks.
-        </p>
+        <div className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8 leading-relaxed animate-fade-in-up font-normal" style={{animationDelay: '0.2s'}}>
+          <AnimatedText 
+            text="All the PDF tools you need at your fingertips." 
+            type="blur"
+            className="inline"
+          />
+          {" "}
+          <span className="font-semibold animate-gradient-text">100% free and easy to use!</span>
+          {" "}
+          <AnimatedText 
+            text="Merge, split, compress, convert, rotate, and secure PDFs with just a few clicks." 
+            type="split"
+            className="inline"
+            delay={500}
+          />
+        </div>
         <div className="animate-bounce-in" style={{animationDelay: '0.4s'}}>
           <Button 
             onClick={scrollToTools}
             size="lg" 
-            className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 hover:scale-105 transition-all duration-300 text-base md:text-lg px-8 md:px-10 py-6 h-auto group shadow-xl hover:shadow-2xl font-semibold rounded-lg animate-gradient animate-button-pulse" 
+            className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-700 hover:via-fuchsia-700 hover:to-pink-700 hover:scale-105 transition-all duration-300 text-base md:text-lg px-8 md:px-10 py-6 h-auto group shadow-xl hover:shadow-2xl font-semibold rounded-lg animate-gradient animate-button-pulse" 
           >
             Get Started
             <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
@@ -283,19 +297,140 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Features Section */}
+      <section className="container mx-auto px-4 py-20 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Why Choose PDFTools?
+          </h2>
+          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            The most powerful and easy-to-use PDF tools, completely free
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto perspective-container">
+          {/* Feature 1 - 3D Card */}
+          <div className="group relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-3d hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 tilt-3d glass-3d">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-morph"></div>
+            <div className="relative layer-3d-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mb-6 animate-pulse-3d animate-glow-3d">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white neon-glow">100% Free</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                All tools are completely free to use. No hidden fees, no subscriptions, no limits.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 2 - 3D Card */}
+          <div className="group relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-3d hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 tilt-3d glass-3d">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-morph"></div>
+            <div className="relative layer-3d-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-6 animate-pulse-3d animate-glow-3d">
+                <Lock className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white neon-glow">Secure & Private</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                Your files are processed securely and deleted automatically. We respect your privacy.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 3 - 3D Card */}
+          <div className="group relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-3d hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 tilt-3d glass-3d">
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-orange-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-morph"></div>
+            <div className="relative layer-3d-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-orange-500 rounded-xl flex items-center justify-center mb-6 animate-pulse-3d animate-glow-3d">
+                <ArrowRight className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white neon-glow">Lightning Fast</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                Process your PDFs in seconds with our optimized tools. No waiting, just results.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="container mx-auto px-4 py-16 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 rounded-3xl my-20 shadow-2xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center text-white">
+          <div className="space-y-2">
+            <div className="text-5xl font-bold">17+</div>
+            <div className="text-xl opacity-90">PDF Tools</div>
+          </div>
+          <div className="space-y-2">
+            <div className="text-5xl font-bold">100%</div>
+            <div className="text-xl opacity-90">Free Forever</div>
+          </div>
+          <div className="space-y-2">
+            <div className="text-5xl font-bold">∞</div>
+            <div className="text-xl opacity-90">Unlimited Usage</div>
+          </div>
+        </div>
+      </section>
+
       {/* Enhanced Footer */}
       <footer className="border-t border-border/50 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 backdrop-blur-sm mt-20">
-        <div className="container mx-auto px-4 py-12 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg animate-gradient">
-              <FileText className="w-5 h-5 text-white" />
+        <div className="container mx-auto px-4 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            {/* Brand Column */}
+            <div className="md:col-span-1">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500 flex items-center justify-center shadow-lg animate-gradient">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 bg-clip-text text-transparent animate-gradient">
+                  PDFTools
+                </span>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                Your all-in-one solution for PDF management. Fast, secure, and completely free.
+              </p>
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient">
-              PDFTools
-            </span>
+
+            {/* Tools Column */}
+            <div>
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4">Popular Tools</h3>
+              <ul className="space-y-2 text-sm">
+                <li><a href="/merge-pdf" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Merge PDF</a></li>
+                <li><a href="/compress-pdf" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Compress PDF</a></li>
+                <li><a href="/pdf-to-word" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">PDF to Word</a></li>
+                <li><a href="/protect-pdf" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Protect PDF</a></li>
+              </ul>
+            </div>
+
+            {/* Company Column */}
+            <div>
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4">Company</h3>
+              <ul className="space-y-2 text-sm">
+                <li><a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About Us</a></li>
+                <li><a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy Policy</a></li>
+                <li><a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms of Service</a></li>
+                <li><a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Contact</a></li>
+              </ul>
+            </div>
+
+            {/* Resources Column */}
+            <div>
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4">Resources</h3>
+              <ul className="space-y-2 text-sm">
+                <li><a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Blog</a></li>
+                <li><a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Help Center</a></li>
+                <li><a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">API Documentation</a></li>
+                <li><a href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">FAQ</a></li>
+              </ul>
+            </div>
           </div>
-          <p className="text-gray-600 dark:text-gray-400 font-medium">© 2024 PDFTools. All rights reserved.</p>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Made with ❤️ for PDF enthusiasts</p>
+
+          {/* Bottom Bar */}
+          <div className="pt-8 border-t border-gray-200 dark:border-gray-800">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">© 2025 PDFTools. All rights reserved.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">Made with ❤️ for PDF enthusiasts worldwide</p>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

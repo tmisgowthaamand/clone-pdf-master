@@ -5,6 +5,7 @@ import { FileList } from "@/components/FileList";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Edit } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
 import { PDFEditor } from "@/components/PDFEditor";
 
@@ -74,9 +75,17 @@ const EditPDF = () => {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="flex justify-center mb-6">
+              <Animated3DIcon 
+                icon={Edit} 
+                color="from-purple-500 to-pink-600"
+                bgGradient="linear-gradient(135deg, #a855f7, #ec4899)"
+              />
+            </div>
+            
             <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Edit PDF
             </h1>
@@ -104,56 +113,6 @@ const EditPDF = () => {
               <>
                 <FileList files={files} onRemove={handleRemove} />
                 
-                <Card className="p-6 bg-muted/50">
-                  <h3 className="font-semibold mb-4">Editing Features</h3>
-                  
-                  <div className="space-y-2 text-sm text-muted-foreground mb-6">
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                      <p>✏️ Add and edit text with custom fonts and sizes</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                      <p>🖼️ Insert images and logos</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                      <p>✏️ Draw freehand with pen tool</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                      <p>▭ Add shapes (rectangles, circles, lines)</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                      <p>🖍️ Highlight text and sections</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                      <p>↶ Undo/Redo support</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                      <p>🔍 Zoom in/out for precision editing</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                      <p>📄 Multi-page support with thumbnails</p>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4 border-t border-border">
-                    <h4 className="font-semibold mb-2 text-sm">How to Use</h4>
-                    <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
-                      <li>Click "Open Editor" to launch the editing interface</li>
-                      <li>Select tools from the left sidebar</li>
-                      <li>Click on the PDF to add text, shapes, or annotations</li>
-                      <li>Use the top toolbar for formatting options</li>
-                      <li>Click "Download PDF" when finished</li>
-                    </ol>
-                  </div>
-                </Card>
-                
                 <Button
                   onClick={handleEditPDF}
                   className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 h-12 text-lg"
@@ -164,6 +123,64 @@ const EditPDF = () => {
               </>
             )}
           </div>
+
+          {/* Features Section */}
+          <Card className="mt-8 p-4 sm:p-6 bg-gradient-to-br from-muted/50 to-muted/30 border-2 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+            <div className="hidden lg:block absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+            
+            <div className="relative z-10">
+              <h4 className="font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
+                <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs sm:text-sm">✨</span>
+                Editing Features
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                {["✏️ Add and edit text", "🖼️ Insert images and logos", "✏️ Draw freehand", "▭ Add shapes", "🖍️ Highlight sections", "↶ Undo/Redo support"].map((feature, index) => (
+                  <div 
+                    key={index} 
+                    className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-background/50 hover:bg-background transition-colors duration-200 lg:hover:scale-105 lg:hover:shadow-md group/item"
+                  >
+                    <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center flex-shrink-0 lg:group-hover/item:scale-110 transition-transform">
+                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />
+                    </div>
+                    <p className="text-xs sm:text-sm text-foreground/80 group-hover/item:text-foreground transition-colors">{feature}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {/* How to Use Steps */}
+          <Card className="mt-6 p-4 sm:p-6 bg-gradient-to-br from-muted/40 to-muted/20 border-2 relative overflow-hidden">
+            <div className="hidden lg:block absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/5 to-secondary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            
+            <div className="relative z-10">
+              <h4 className="font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
+                <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs sm:text-sm">📋</span>
+                How to Use
+              </h4>
+              <ol className="space-y-2 sm:space-y-3">
+                {[
+                  "Click 'Open Editor' to launch the editing interface",
+                  "Select tools from the left sidebar",
+                  "Click on the PDF to add text, shapes, or annotations",
+                  "Use the top toolbar for formatting options",
+                  "Click 'Download PDF' when finished"
+                ].map((step, index) => (
+                  <li 
+                    key={index} 
+                    className="flex gap-2 sm:gap-3 items-start group lg:hover:translate-x-2 transition-transform duration-300"
+                  >
+                    <span className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center text-xs sm:text-sm font-bold shadow-lg lg:group-hover:scale-110 transition-all duration-300">
+                      {index + 1}
+                    </span>
+                    <div className="flex-1 pt-0.5 sm:pt-1">
+                      <span className="text-xs sm:text-sm text-foreground font-medium group-hover:text-primary transition-colors">{step}</span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </Card>
         </div>
       </div>
     </div>

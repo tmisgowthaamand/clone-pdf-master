@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface FileUploadProps {
@@ -106,7 +105,7 @@ export const FileUpload = ({
       {/* iLovePDF-style button */}
       <label
         htmlFor="file-upload-input"
-        className="cursor-pointer inline-flex items-center gap-2 px-8 py-4 rounded-lg font-semibold text-white transition-all hover:shadow-lg"
+        className="cursor-pointer inline-flex items-center gap-2 px-8 py-4 rounded-lg font-semibold text-white transition-all hover:shadow-lg whitespace-nowrap"
         style={{
           backgroundColor: '#E62B1E',
           fontSize: '16px',
