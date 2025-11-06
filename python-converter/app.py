@@ -2050,7 +2050,7 @@ def sign_pdf():
                 pass
 
 @app.route('/api/health', methods=['GET'])
-def health_check():
+def api_health_check():
     """Check if LibreOffice is available"""
     try:
         result = subprocess.run(
