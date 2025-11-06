@@ -1,3 +1,6 @@
+# Alternative Render Configuration (if main render.yaml fails)
+# This uses Render's native package installation
+
 services:
   # Backend API Service
   - type: web
@@ -8,24 +11,19 @@ services:
     plan: free
     branch: main
     rootDir: python-converter
+    
+    # Native packages (no root required)
+    nativeEnvironments:
+      - libreoffice
+      - ghostscript
+      - poppler-utils
+    
     buildCommand: |
-      # Install system dependencies for PDF processing
-      apt-get update && apt-get install -y \
-        libreoffice \
-        libreoffice-writer \
-        libreoffice-impress \
-        libreoffice-calc \
-        ghostscript \
-        poppler-utils \
-        libpoppler-cpp-dev \
-        python3-tk \
-        fonts-liberation \
-        fonts-dejavu-core \
-        fontconfig
-      # Install Python dependencies
       pip install --upgrade pip
       pip install -r ../requirements.txt
-    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 300 --worker-class sync --max-requests 1000 --max-requests-jitter 50"
+    
+    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 300 --worker-class sync --max-requests 1000"
+    
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -37,5 +35,6 @@ services:
         value: "*"
       - key: MAX_CONTENT_LENGTH
         value: "104857600"
+    
     healthCheckPath: /health
     autoDeploy: true

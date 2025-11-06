@@ -41,10 +41,11 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)  # For session management
 CORS(app)  # Enable CORS for frontend
 
-# Add LibreOffice to PATH
-libreoffice_path = r"C:\Program Files\LibreOffice\program"
-if libreoffice_path not in os.environ.get('PATH', ''):
-    os.environ['PATH'] = libreoffice_path + os.pathsep + os.environ.get('PATH', '')
+# Add LibreOffice to PATH (cross-platform)
+if sys.platform == 'win32':
+    libreoffice_path = r"C:\Program Files\LibreOffice\program"
+    if libreoffice_path not in os.environ.get('PATH', ''):
+        os.environ['PATH'] = libreoffice_path + os.pathsep + os.environ.get('PATH', '')
 
 ALLOWED_EXTENSIONS = {'ppt', 'pptx', 'pdf', 'doc', 'docx'}
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
@@ -56,19 +57,22 @@ def allowed_file(filename, allowed_types=None):
 
 def convert_with_libreoffice(input_path, output_dir):
     """Convert using LibreOffice - same quality as iLovePDF"""
-    # Use full path to soffice.exe
-    soffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
-    
-    # Kill any existing LibreOffice processes to avoid file locks
-    try:
-        subprocess.run(['taskkill', '/F', '/IM', 'soffice.exe', '/T'], 
-                      capture_output=True, timeout=5, encoding='utf-8', errors='replace')
-        subprocess.run(['taskkill', '/F', '/IM', 'soffice.bin', '/T'], 
-                      capture_output=True, timeout=5, encoding='utf-8', errors='replace')
-        import time
-        time.sleep(1)  # Wait for processes to fully terminate
-    except:
-        pass
+    # Detect LibreOffice executable based on platform
+    if sys.platform == 'win32':
+        soffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
+        # Kill any existing LibreOffice processes to avoid file locks (Windows only)
+        try:
+            subprocess.run(['taskkill', '/F', '/IM', 'soffice.exe', '/T'], 
+                          capture_output=True, timeout=5, encoding='utf-8', errors='replace')
+            subprocess.run(['taskkill', '/F', '/IM', 'soffice.bin', '/T'], 
+                          capture_output=True, timeout=5, encoding='utf-8', errors='replace')
+            import time
+            time.sleep(1)  # Wait for processes to fully terminate
+        except:
+            pass
+    else:
+        # Linux/Unix - use system LibreOffice
+        soffice_exe = shutil.which('soffice') or 'soffice'
     
     cmd = [
         soffice_exe,
@@ -106,14 +110,18 @@ def convert_pdf_to_pptx(input_path, output_dir):
         from pptx.util import Inches
         import tempfile as tmp
         
-        # Try to find Poppler
-        poppler_paths = [
-            r"C:\poppler\poppler-24.08.0\Library\bin",
-            r"C:\Program Files\Poppler\Library\bin",
-            r"C:\Program Files (x86)\Poppler\Library\bin",
-            r"C:\poppler\Library\bin",
-            None  # Try system PATH as fallback
-        ]
+        # Try to find Poppler (cross-platform)
+        if sys.platform == 'win32':
+            poppler_paths = [
+                r"C:\poppler\poppler-24.08.0\Library\bin",
+                r"C:\Program Files\Poppler\Library\bin",
+                r"C:\Program Files (x86)\Poppler\Library\bin",
+                r"C:\poppler\Library\bin",
+                None  # Try system PATH as fallback
+            ]
+        else:
+            # Linux/Unix - poppler-utils should be in PATH
+            poppler_paths = [None]
         
         images = None
         last_error = None

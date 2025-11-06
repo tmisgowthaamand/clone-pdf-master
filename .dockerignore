@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.venv
+venv
+env
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+node_modules
+frontend
+src
+public
+supabase
+automation-examples
+*.md
+*.bat
+*.ps1
+*.pptx
+*.pdf
+*.xlsx
+test-*
+Sample-*
+
+# Keep only what's needed
+!requirements.txt
+!python-converter/
