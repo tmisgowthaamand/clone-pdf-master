@@ -1493,19 +1493,22 @@ def excel_to_pdf():
             print(f"Input: {excel_path}")
             print(f"{'='*60}\n")
             
-            # Use LibreOffice with optimal settings
-            soffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
-            
-            # Kill existing LibreOffice processes
-            try:
-                subprocess.run(['taskkill', '/F', '/IM', 'soffice.exe', '/T'], 
-                              capture_output=True, timeout=5, encoding='utf-8', errors='replace')
-                subprocess.run(['taskkill', '/F', '/IM', 'soffice.bin', '/T'], 
-                              capture_output=True, timeout=5, encoding='utf-8', errors='replace')
-                import time
-                time.sleep(1)
-            except:
-                pass
+            # Detect LibreOffice executable based on platform
+            if sys.platform == 'win32':
+                soffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
+                # Kill existing LibreOffice processes (Windows only)
+                try:
+                    subprocess.run(['taskkill', '/F', '/IM', 'soffice.exe', '/T'], 
+                                  capture_output=True, timeout=5, encoding='utf-8', errors='replace')
+                    subprocess.run(['taskkill', '/F', '/IM', 'soffice.bin', '/T'], 
+                                  capture_output=True, timeout=5, encoding='utf-8', errors='replace')
+                    import time
+                    time.sleep(1)
+                except:
+                    pass
+            else:
+                # Linux/Unix - use system LibreOffice
+                soffice_exe = shutil.which('soffice') or 'soffice'
             
             # Convert with optimal settings - preserve images and formatting
             # calc_pdf_Export preserves all images, logos, and formatting
