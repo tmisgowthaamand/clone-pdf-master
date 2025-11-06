@@ -2,8 +2,8 @@ services:
   - type: web
     name: pdftools-backend
     env: docker
-    dockerfilePath: ./python-converter/Dockerfile
-    dockerContext: ./python-converter
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./
     envVars:
       - key: PORT
         value: 10000

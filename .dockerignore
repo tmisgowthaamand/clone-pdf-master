@@ -28,22 +28,42 @@ env
 .DS_Store
 Thumbs.db
 
-# Project specific
-node_modules
-frontend
-src
-public
-supabase
-automation-examples
+# Frontend - Exclude everything frontend related
+node_modules/
+src/
+public/
+frontend/
+components.json
+*.config.js
+*.config.ts
+tsconfig*.json
+package.json
+package-lock.json
+bun.lockb
+index.html
+vite.config.*
+eslint.config.*
+postcss.config.*
+tailwind.config.*
+
+# Documentation & Scripts
 *.md
 *.bat
 *.ps1
+
+# Sample files
 *.pptx
 *.pdf
 *.xlsx
 test-*
 Sample-*
 
-# Keep only what's needed
-!requirements.txt
+# Other directories
+supabase/
+automation-examples/
+server/
+@/
+dist/
+
+# Keep only python-converter (backend)
 !python-converter/

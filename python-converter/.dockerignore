@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+tmp/*
+*.tmp
+*.bak
+
+# Environment
+.env
+.env.local
+
+# Git
+.git/
+.gitignore
+
+# Batch files (Windows scripts not needed in Docker)
+*.bat
+
+# Streamlit apps (not needed for Flask API deployment)
+streamlit_*.py
+pdf_to_jpg_app.py
+pdf_to_excel_app.py
+jpg_to_pdf_app.py
+excel_to_pdf_app.py
+edit_pdf_app.py
+
+# Sample files
+Sample-*.pdf
+Sample-*.pptx
+test-*.pptx
+
+# Documentation
+*.md
+!README.md
+
+# Extra Python files not needed for main API
+edit_pdf_*.py
+excel_to_pdf_*.py
+csv_to_excel.py
+pdf_to_pptx_converter.py
+pptx_to_pdf.py
+watermark_backend.py
