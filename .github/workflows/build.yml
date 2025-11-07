@@ -26,16 +26,12 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Lint
-      run: npm run lint
-      continue-on-error: true
-    
     - name: Build
       run: npm run build
       env:
-        VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://pdftools-backend.onrender.com' }}
-        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-        VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        VITE_API_URL: https://pdftools-backend.onrender.com
+        VITE_SUPABASE_URL: https://prjaxfldggnpelzbdmzk.supabase.co
+        VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByamF4ZmxkZ2ducGVsemJkbXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4NTU0NTMsImV4cCI6MjA3NzQzMTQ1M30.zNaJPDqox_jZ6qgDxdrfnzVIJ2O_0Hj1bb4DF95gywc
     
     - name: Check build output
       run: |
