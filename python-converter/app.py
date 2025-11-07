@@ -547,10 +547,12 @@ def pdf_to_excel():
         # Process first page to extract logo and headers
         page = doc[0]
         
-        # Extract and add images (Bank logo)
+        # Extract and add images (Bank logo) - Enhanced positioning
         image_list = page.get_images()
+        logo_added = False
         if image_list:
             print(f"Found {len(image_list)} images (logos)")
+            # Get the largest image (usually the bank logo)
             for img_index, img in enumerate(image_list):
                 try:
                     xref = img[0]
@@ -558,64 +560,99 @@ def pdf_to_excel():
                     image_bytes = base_image["image"]
                     image_ext = base_image["ext"]
                     
+                    # Skip very small images (likely icons)
+                    if len(image_bytes) < 1000:
+                        continue
+                    
                     # Save image temporarily
-                    img_path = os.path.join(tmpdir, f'logo.{image_ext}')
+                    img_path = os.path.join(tmpdir, f'bank_logo.{image_ext}')
                     with open(img_path, 'wb') as img_file:
                         img_file.write(image_bytes)
                     
-                    # Add image to Excel (top right, like bank statements)
+                    # Add image to Excel (top right corner, professional positioning)
                     excel_img = OpenpyxlImage(img_path)
-                    # Resize to reasonable size
-                    if excel_img.height > 80:
-                        ratio = 80 / excel_img.height
-                        excel_img.height = 80
+                    
+                    # Smart resize: maintain aspect ratio, max height 60px
+                    if excel_img.height > 60:
+                        ratio = 60 / excel_img.height
+                        excel_img.height = 60
                         excel_img.width = int(excel_img.width * ratio)
                     
-                    # Position in top right (column H)
-                    ws.add_image(excel_img, 'H1')
-                    print(f"  Added logo to Excel")
+                    # Position in top right corner (column I, row 1)
+                    ws.add_image(excel_img, 'I1')
+                    logo_added = True
+                    print(f"  ✓ Bank logo added to Excel (top-right)")
+                    break  # Only add the first valid logo
                 except Exception as e:
                     print(f"  Warning: Could not add image: {e}")
         
-        # Extract text for title and headers
+        # Extract text for bank name and headers - Enhanced extraction
         text_dict = page.get_text("dict")
         blocks = text_dict["blocks"]
         
-        # Find "Detailed Statement" title
+        # Extract bank name and important headers
+        bank_name = ""
+        statement_title = ""
+        header_row = 1
+        
         for block in blocks:
             if block["type"] == 0:  # Text block
                 for line in block["lines"]:
                     line_text = ""
+                    font_size = 0
                     for span in line["spans"]:
                         line_text += span["text"]
-                    if "Detailed Statement" in line_text:
-                        # Add title (centered, bold, large)
-                        ws.merge_cells('A2:G2')
-                        title_cell = ws['A2']
-                        title_cell.value = "Detailed Statement"
-                        title_cell.font = Font(size=16, bold=True)
+                        font_size = max(font_size, span.get("size", 0))
+                    
+                    line_text = line_text.strip()
+                    
+                    # Detect bank name (usually large font at top)
+                    if font_size > 14 and not bank_name and len(line_text) > 3:
+                        if any(keyword in line_text.upper() for keyword in ['BANK', 'AXIS', 'HDFC', 'ICICI', 'SBI']):
+                            bank_name = line_text
+                            # Add bank name at top
+                            ws.merge_cells('A1:H1')
+                            bank_cell = ws['A1']
+                            bank_cell.value = bank_name
+                            bank_cell.font = Font(size=14, bold=True, color='1F4E78')
+                            bank_cell.alignment = Alignment(horizontal='center', vertical='center')
+                            ws.row_dimensions[1].height = 22
+                            print(f"  ✓ Bank name added: {bank_name}")
+                            header_row = 2
+                    
+                    # Detect statement title
+                    if "Detailed Statement" in line_text or "Statement" in line_text:
+                        statement_title = line_text
+                        # Add statement title
+                        ws.merge_cells(f'A{header_row}:H{header_row}')
+                        title_cell = ws[f'A{header_row}']
+                        title_cell.value = statement_title
+                        title_cell.font = Font(size=13, bold=True)
                         title_cell.alignment = Alignment(horizontal='center', vertical='center')
-                        ws.row_dimensions[2].height = 25  # Make title row taller
-                        print("  Added 'Detailed Statement' title")
+                        ws.row_dimensions[header_row].height = 20
+                        print(f"  ✓ Statement title added: {statement_title}")
+                        header_row += 1
                         break
         
-        # Start table from row 4 (right after title)
-        current_row = 4
+        # Start table from row after headers
+        current_row = header_row + 1
         
         # Now extract tables using Camelot
         print("\nExtracting tables...")
         all_tables = []
         
-        # Try lattice mode first - Optimized for speed
+        # Try lattice mode first - Optimized for speed and accuracy
         try:
             print("Strategy 1: Lattice mode (bordered tables)...")
             tables = camelot.read_pdf(
                 str(pdf_path), 
                 pages='all', 
                 flavor='lattice',
-                line_scale=40,
-                shift_text=['l', 't'],
-                suppress_stdout=True  # 30% faster - reduce console overhead
+                line_scale=40,  # Better line detection
+                shift_text=['l', 't'],  # Align text to left-top
+                suppress_stdout=True,  # 30% faster
+                strip_text='\n',  # Remove newlines for cleaner data
+                split_text=True  # Better text splitting
             )
             if tables and len(tables) > 0:
                 for idx, table in enumerate(tables):
@@ -753,22 +790,48 @@ def pdf_to_excel():
         combined_df = combined_df.fillna('')
         
         # Write table data to worksheet starting from current_row
+        # Define border style for professional look
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
         # Write headers
         for col_idx, col_name in enumerate(combined_df.columns, start=1):
             cell = ws.cell(row=current_row, column=col_idx, value=str(col_name))
             cell.font = Font(bold=True, size=11)
             cell.fill = PatternFill(start_color='D3D3D3', end_color='D3D3D3', fill_type='solid')
             cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = thin_border
         
         current_row += 1
         
-        # Write data rows
+        # Write data rows with smart alignment
         for _, row_data in combined_df.iterrows():
             for col_idx, value in enumerate(row_data, start=1):
                 # Convert value to string if it's not empty
                 cell_value = str(value) if value != '' else ''
                 cell = ws.cell(row=current_row, column=col_idx, value=cell_value)
-                cell.alignment = Alignment(horizontal='center', vertical='center')
+                
+                # Smart alignment: numbers right, dates center, text left
+                col_name = combined_df.columns[col_idx - 1].lower()
+                if any(keyword in col_name for keyword in ['date', 'chq', 'no']):
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+                elif any(keyword in col_name for keyword in ['debit', 'credit', 'balance', 'value', 'amount']):
+                    cell.alignment = Alignment(horizontal='right', vertical='center')
+                    # Format numbers with proper decimal places
+                    try:
+                        if cell_value and cell_value.replace('.', '').replace(',', '').replace('-', '').isdigit():
+                            cell.number_format = '#,##0.00'
+                    except:
+                        pass
+                else:
+                    cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+                
+                # Add borders to all cells
+                cell.border = thin_border
             current_row += 1
         
         # Auto-adjust column widths

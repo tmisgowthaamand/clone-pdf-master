@@ -33,8 +33,8 @@ const PDFToExcel = () => {
       const estimatedTime = file.size > 5 * 1024 * 1024 ? '1-2 minutes' : '30-45 seconds';
       
       toast({
-        title: "Converting...",
-        description: `Extracting tables from PDF (${fileSizeMB}MB). Estimated time: ${estimatedTime}`,
+        title: "🚀 Converting PDF to Excel...",
+        description: `Extracting tables, logo, and headers (${fileSizeMB}MB). Estimated: ${estimatedTime}`,
       });
 
       const formData = new FormData();
@@ -70,8 +70,8 @@ const PDFToExcel = () => {
       document.body.removeChild(a);
 
       toast({
-        title: "Success!",
-        description: `PDF converted to Excel successfully!`,
+        title: "✅ Success!",
+        description: `Bank statement converted with logo, headers, and perfect alignment!`,
       });
     } catch (error: any) {
       let errorMessage = "Failed to convert PDF to Excel";
