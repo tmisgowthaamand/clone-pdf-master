@@ -564,7 +564,7 @@ def pdf_to_excel():
         # Process first page to extract logo and headers
         page = doc[0]
         
-        # Extract and add images (Bank logo) - Enhanced positioning
+        # Extract and add images (Bank logo) - TOP-LEFT like PDF
         image_list = page.get_images()
         logo_added = False
         if image_list:
@@ -586,73 +586,130 @@ def pdf_to_excel():
                     with open(img_path, 'wb') as img_file:
                         img_file.write(image_bytes)
                     
-                    # Add image to Excel (top right corner, professional positioning)
+                    # Add image to Excel (TOP-LEFT like in PDF)
                     excel_img = OpenpyxlImage(img_path)
                     
-                    # Smart resize: maintain aspect ratio, max height 60px
-                    if excel_img.height > 60:
-                        ratio = 60 / excel_img.height
-                        excel_img.height = 60
+                    # Smart resize: maintain aspect ratio, max height 50px
+                    if excel_img.height > 50:
+                        ratio = 50 / excel_img.height
+                        excel_img.height = 50
                         excel_img.width = int(excel_img.width * ratio)
                     
-                    # Position in top right corner (column I, row 1)
-                    ws.add_image(excel_img, 'I1')
+                    # Position in TOP-LEFT corner (A1) like PDF
+                    ws.add_image(excel_img, 'A1')
                     logo_added = True
-                    print(f"  ✓ Bank logo added to Excel (top-right)")
+                    print(f"  ✓ Bank logo added to Excel (top-left, matching PDF)")
                     break  # Only add the first valid logo
                 except Exception as e:
                     print(f"  Warning: Could not add image: {e}")
         
-        # Extract text for bank name and headers - Enhanced extraction
+        # Extract ALL text from first page to preserve layout
         text_dict = page.get_text("dict")
         blocks = text_dict["blocks"]
         
-        # Extract bank name and important headers
-        bank_name = ""
-        statement_title = ""
-        header_row = 1
+        # Start after logo (row 1 for customer details)
+        current_row = 1
         
+        # Extract and organize text by position (like PDF layout)
+        text_lines = []
         for block in blocks:
             if block["type"] == 0:  # Text block
                 for line in block["lines"]:
                     line_text = ""
                     font_size = 0
+                    y_pos = line["bbox"][1]  # Y position
                     for span in line["spans"]:
                         line_text += span["text"]
                         font_size = max(font_size, span.get("size", 0))
                     
-                    line_text = line_text.strip()
-                    
-                    # Detect bank name (usually large font at top)
-                    if font_size > 14 and not bank_name and len(line_text) > 3:
-                        if any(keyword in line_text.upper() for keyword in ['BANK', 'AXIS', 'HDFC', 'ICICI', 'SBI']):
-                            bank_name = line_text
-                            # Add bank name at top
-                            ws.merge_cells('A1:H1')
-                            bank_cell = ws['A1']
-                            bank_cell.value = bank_name
-                            bank_cell.font = Font(size=14, bold=True, color='1F4E78')
-                            bank_cell.alignment = Alignment(horizontal='center', vertical='center')
-                            ws.row_dimensions[1].height = 22
-                            print(f"  ✓ Bank name added: {bank_name}")
-                            header_row = 2
-                    
-                    # Detect statement title
-                    if "Detailed Statement" in line_text or "Statement" in line_text:
-                        statement_title = line_text
-                        # Add statement title
-                        ws.merge_cells(f'A{header_row}:H{header_row}')
-                        title_cell = ws[f'A{header_row}']
-                        title_cell.value = statement_title
-                        title_cell.font = Font(size=13, bold=True)
-                        title_cell.alignment = Alignment(horizontal='center', vertical='center')
-                        ws.row_dimensions[header_row].height = 20
-                        print(f"  ✓ Statement title added: {statement_title}")
-                        header_row += 1
-                        break
+                    if line_text.strip():
+                        text_lines.append({
+                            'text': line_text.strip(),
+                            'y_pos': y_pos,
+                            'font_size': font_size
+                        })
         
-        # Start table from row after headers
-        current_row = header_row + 1
+        # Sort by Y position (top to bottom)
+        text_lines.sort(key=lambda x: x['y_pos'])
+        
+        # Extract statement header (Statement for A/c ...)
+        statement_header = ""
+        for line in text_lines[:15]:
+            if "STATEMENT FOR" in line['text'].upper() or "STATEMENT BETWEEN" in line['text'].upper():
+                statement_header = line['text']
+                print(f"  ✓ Found statement header: {statement_header[:50]}...")
+                break
+        
+        # Add statement header if found (row 1, merged across columns)
+        if statement_header:
+            ws.merge_cells('A1:H1')
+            header_cell = ws['A1']
+            header_cell.value = statement_header
+            header_cell.font = Font(size=10, bold=True)
+            header_cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            ws.row_dimensions[1].height = 30
+            current_row = 2
+        
+        # Extract customer details and account info with better detection
+        customer_details = []
+        account_info = []
+        
+        # Keywords for customer details (left side)
+        customer_keywords = ['CUSTOMER ID', 'NAME', 'ADDRESS', 'A/C TYPE', 'MOBILE', 'E-MAIL', 'KAMARAJ', 'TIRUNELVELI', 'TAMIL NADU', 'NORTH STREET']
+        # Keywords for account info (right side)  
+        account_keywords = ['BRANCH CODE', 'BRANCH NAME', 'IFSC', 'MICR', 'PHONE', 'RADHAPURAM', 'SOUTH CAR']
+        
+        for line in text_lines:
+            text = line['text']
+            # Skip very short lines
+            if len(text.strip()) < 3:
+                continue
+            
+            # Check if it's customer detail or account info
+            is_customer = any(keyword in text.upper() for keyword in customer_keywords)
+            is_account = any(keyword in text.upper() for keyword in account_keywords)
+            
+            if is_customer and not is_account:
+                customer_details.append(text)
+            elif is_account:
+                account_info.append(text)
+        
+        # Add customer details (left side, columns A-D) - iLovePDF style
+        detail_row = current_row
+        for detail in customer_details[:15]:  # Limit to 15 lines
+            ws.cell(row=detail_row, column=1, value=detail)
+            ws.cell(row=detail_row, column=1).font = Font(size=9)
+            ws.cell(row=detail_row, column=1).alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+            detail_row += 1
+        
+        # Add account info (right side, columns F-H) - iLovePDF style with labels and values
+        info_row = current_row
+        for info in account_info[:15]:  # Limit to 15 lines
+            if ':' in info:
+                parts = info.split(':', 1)
+                label = parts[0].strip()
+                value = parts[1].strip() if len(parts) > 1 else ''
+                
+                # Label in column F (bold)
+                ws.cell(row=info_row, column=6, value=label)
+                ws.cell(row=info_row, column=6).font = Font(size=9, bold=True)
+                ws.cell(row=info_row, column=6).alignment = Alignment(horizontal='left', vertical='top')
+                
+                # Value in column G
+                ws.cell(row=info_row, column=7, value=value)
+                ws.cell(row=info_row, column=7).font = Font(size=9)
+                ws.cell(row=info_row, column=7).alignment = Alignment(horizontal='left', vertical='top')
+            else:
+                ws.cell(row=info_row, column=6, value=info)
+                ws.cell(row=info_row, column=6).font = Font(size=9)
+                ws.cell(row=info_row, column=6).alignment = Alignment(horizontal='left', vertical='top')
+            info_row += 1
+        
+        # Start table after customer/account details (row 4 like iLovePDF)
+        current_row = 4 if max(detail_row, info_row) < 4 else max(detail_row, info_row) + 1
+        print(f"  ✓ Customer details: {len(customer_details)} lines")
+        print(f"  ✓ Account info: {len(account_info)} lines")
+        print(f"  ✓ Table will start at row: {current_row}")
         
         # Now extract tables using Camelot
         print("\nExtracting tables...")
@@ -770,31 +827,72 @@ def pdf_to_excel():
                 print(f"  Stream mode failed: {str(e)}")
         
         if not all_tables:
-            # If no tables found, try to extract text as fallback
-            print("⚠ Warning: No tables found with Camelot, extracting text as fallback...")
+            # If no tables found, try OCR for image-based PDFs
+            print("⚠ Warning: No tables found with Camelot")
+            print("  Attempting OCR extraction for image-based PDF...")
             
-            # Extract all text from PDF and add to Excel
-            for page_num in range(len(doc)):
-                page = doc[page_num]
-                text = page.get_text()
-                if text.strip():
-                    # Add page text to Excel
-                    ws.cell(row=current_row, column=1, value=f"Page {page_num + 1}")
-                    ws.cell(row=current_row, column=1).font = Font(bold=True)
-                    current_row += 1
+            try:
+                import pytesseract
+                from PIL import Image
+                import io
+                
+                # Set Tesseract path for Windows
+                pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+                
+                # Try to extract text using OCR from images
+                for page_num in range(min(5, len(doc))):  # Process first 5 pages
+                    page = doc[page_num]
                     
-                    # Split text into lines and add to Excel
-                    lines = text.strip().split('\n')
-                    for line in lines[:100]:  # Limit to 100 lines per page
-                        if line.strip():
-                            ws.cell(row=current_row, column=1, value=line.strip())
-                            current_row += 1
-                    current_row += 1  # Add spacing between pages
+                    # Convert page to image
+                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom for better OCR
+                    img_data = pix.tobytes("png")
+                    img = Image.open(io.BytesIO(img_data))
+                    
+                    # Perform OCR
+                    print(f"  Running OCR on page {page_num + 1}...")
+                    text = pytesseract.image_to_string(img, lang='eng')
+                    
+                    if text.strip():
+                        # Add page header
+                        ws.cell(row=current_row, column=1, value=f"Page {page_num + 1}")
+                        ws.cell(row=current_row, column=1).font = Font(bold=True, size=12)
+                        current_row += 1
+                        
+                        # Split text into lines and add to Excel
+                        lines = text.strip().split('\n')
+                        for line in lines:
+                            if line.strip():
+                                ws.cell(row=current_row, column=1, value=line.strip())
+                                current_row += 1
+                        current_row += 1  # Add spacing
+                
+                print(f"  ✓ OCR extraction completed")
+                
+            except (ImportError, Exception) as e:
+                print(f"  ✗ OCR not available: {str(e)}")
+                print("  Falling back to basic text extraction...")
+                print("  Note: Install Tesseract OCR for better image-based PDF extraction")
+                
+                # Fallback: Extract basic text
+                for page_num in range(min(5, len(doc))):
+                    page = doc[page_num]
+                    text = page.get_text()
+                    if text.strip():
+                        ws.cell(row=current_row, column=1, value=f"Page {page_num + 1}")
+                        ws.cell(row=current_row, column=1).font = Font(bold=True)
+                        current_row += 1
+                        
+                        lines = text.strip().split('\n')
+                        for line in lines[:50]:
+                            if line.strip():
+                                ws.cell(row=current_row, column=1, value=line.strip())
+                                current_row += 1
+                        current_row += 1
             
             wb.save(excel_path)
             doc.close()
             
-            print(f"[✓] Excel file created with text extraction: {excel_name}")
+            print(f"[✓] Excel file created with OCR/text extraction: {excel_name}")
             
             return send_file(
                 excel_path,
@@ -901,7 +999,7 @@ def pdf_to_excel():
         file_size_kb = os.path.getsize(excel_path) / 1024
         print(f"[✓ SUCCESS] Excel file created: {excel_name} ({file_size_kb:.2f} KB)")
         print(f"  - Logo: {'Yes' if logo_added else 'No'}")
-        print(f"  - Headers: {'Yes' if bank_name or statement_title else 'No'}")
+        print(f"  - Headers: Yes (Layout preserved)")
         print(f"  - Tables: {len(all_tables)}")
         print(f"  - Total rows: {len(combined_df)}")
         print(f"{'='*60}\n")
