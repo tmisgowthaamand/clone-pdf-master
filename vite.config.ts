@@ -28,7 +28,7 @@ function removeUnusedCode() {
   return {
     name: 'remove-unused-code',
     enforce: 'post' as const,
-    generateBundle(_options: any, bundle: any) {
+    generateBundle(_options: unknown, bundle: Record<string, unknown>) {
       // Remove source maps in production
       if (process.env.NODE_ENV === 'production') {
         Object.keys(bundle).forEach(key => {

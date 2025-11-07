@@ -39,7 +39,7 @@ serve(async (req: Request) => {
 
     // Extract text from PDF
     const textDecoder = new TextDecoder('utf-8', { fatal: false });
-    let extractedData: string[][] = [['Page', 'Content']];
+    const extractedData: string[][] = [['Page', 'Content']];
     
     try {
       const pdfText = textDecoder.decode(uint8Array);

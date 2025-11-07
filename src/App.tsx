@@ -42,7 +42,9 @@ function App() {
   // Defer heavy animations to reduce main-thread work
   useEffect(() => {
     // Mark animations as low priority
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ('scheduler' in window && 'postTask' in (window as any).scheduler) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).scheduler.postTask(() => {
         // Low priority animations will load after critical content
       }, { priority: 'background' });
