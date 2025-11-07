@@ -38,8 +38,9 @@ const WatermarkPDF = () => {
     setFiles(newFiles);
     if (newFiles.length > 0) {
       const file = newFiles[0];
+      // Optimize: Use blob URL with type hint for faster loading
       const url = URL.createObjectURL(file);
-      setPdfPreview(url);
+      setPdfPreview(url + '#toolbar=0&navpanes=0&scrollbar=0'); // Disable PDF toolbar for faster rendering
     }
   };
 
@@ -235,17 +236,13 @@ const WatermarkPDF = () => {
                       </span>
                     </div>
                     <div className="relative bg-white dark:bg-gray-900 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700" style={{ height: '600px' }}>
-                      {/* PDF Preview - Optimized for performance */}
+                      {/* PDF Preview - Optimized for faster loading */}
                       <iframe
                         src={pdfPreview}
                         className="w-full h-full"
                         title="PDF Preview"
                         loading="lazy"
-                        style={{ 
-                          willChange: 'auto',
-                          transform: 'translateZ(0)',
-                          backfaceVisibility: 'hidden'
-                        }}
+                        style={{ contain: 'strict' }}
                       />
                       
                       {/* Position Grid Overlay - Shows all 9 positions */}
@@ -442,7 +439,7 @@ const WatermarkPDF = () => {
                           <SelectTrigger className="mt-2">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="z-[9999] max-h-[250px] overflow-y-auto" position="popper" sideOffset={5}>
+                          <SelectContent>
                             <SelectItem value="Arial">Arial</SelectItem>
                             <SelectItem value="Times New Roman">Times New Roman</SelectItem>
                             <SelectItem value="Courier New">Courier New</SelectItem>
@@ -548,7 +545,7 @@ const WatermarkPDF = () => {
                         <SelectTrigger className="mt-2">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="z-[9999] max-h-[300px] overflow-y-auto" position="popper" sideOffset={5}>
+                        <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
                           <SelectItem value="diagonal">Full Page Diagonal</SelectItem>
                           <SelectItem value="mosaic">Mosaic (Grid Pattern)</SelectItem>
                           <SelectItem value="tile">Tile (Repeat)</SelectItem>
@@ -571,7 +568,7 @@ const WatermarkPDF = () => {
                         <SelectTrigger className="mt-2">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="z-[9999]" position="popper" sideOffset={5}>
+                        <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
                           <SelectItem value="over">Over the PDF content</SelectItem>
                           <SelectItem value="below">Below the PDF content</SelectItem>
                         </SelectContent>

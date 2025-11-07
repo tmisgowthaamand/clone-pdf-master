@@ -1,3 +1,0 @@
-GitHub Actions Workflow Test
-This file is used to trigger the workflow and verify it passes successfully.
-Test timestamp: 2025-11-07 13:31 IST

@@ -82,7 +82,7 @@ function parseXMLText(xmlString: string, themeColors: any = {}) {
     const textMatch = /<a:t[^>]*>([^<]*)<\/a:t>/.exec(runContent);
     if (!textMatch) continue;
     
-    const text = textMatch[1]
+    let text = textMatch[1]
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
@@ -153,7 +153,7 @@ async function extractSlideInfo(zip: any, slideNum: number, themeColors: any = {
     
     // Extract background color/gradient with exact precision
     let backgroundColor = 'FFFFFF';
-    const gradientStops: Array<{position: number, color: string}> = [];
+    let gradientStops: Array<{position: number, color: string}> = [];
     let gradientAngle = 90; // Default vertical gradient
     
     // Check for background in slide or slide layout

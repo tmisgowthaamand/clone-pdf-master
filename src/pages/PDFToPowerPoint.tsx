@@ -28,28 +28,34 @@ const PDFToPowerPoint = () => {
     setIsConverting(true);
     
     try {
+      // Calculate estimated time based on file size
+      const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+      const estimatedTime = file.size > 10 * 1024 * 1024 ? '2-3 minutes' : '30-60 seconds';
+      
       toast({
-        title: "Converting...",
-        description: "Converting PDF to PowerPoint. This may take a moment.",
+        title: "🚀 Starting Conversion...",
+        description: `Converting PDF (${fileSizeMB}MB) to PowerPoint. Estimated time: ${estimatedTime}`,
       });
 
       const formData = new FormData();
       formData.append('file', file);
       
-      // Add timeout for cloud deployments (90 seconds for larger PDFs)
+      // Longer timeout for PDF to PowerPoint (can be slow for large files)
+      const timeoutDuration = file.size > 10 * 1024 * 1024 ? 180000 : 120000; // 3 min or 2 min
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
       
       const response = await fetch(API_ENDPOINTS.PDF_TO_PPTX, {
         method: 'POST',
         body: formData,
         signal: controller.signal,
+        keepalive: true,
       });
-
+      
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Conversion failed' }));
+        const error = await response.json();
         throw new Error(error.error || 'Conversion failed');
       }
 
@@ -64,25 +70,28 @@ const PDFToPowerPoint = () => {
       URL.revokeObjectURL(url);
 
       toast({
-        title: "Success!",
-        description: "PDF converted to PowerPoint successfully!",
+        title: "✅ Conversion Complete!",
+        description: "PDF converted to PowerPoint successfully",
       });
+      
+      setIsConverting(false);
     } catch (error: any) {
-      let errorMessage = "Failed to convert PDF to PowerPoint";
+      console.error('Conversion error:', error);
+      setIsConverting(false);
+      
+      let errorMessage = 'Make sure Python backend is running on port 5000';
       
       if (error.name === 'AbortError') {
-        errorMessage = "Conversion timeout. Please try a smaller file or try again later.";
-      } else if (error.message) {
+        errorMessage = 'Conversion timeout. Please try a smaller PDF or try again later.';
+      } else if (error instanceof Error) {
         errorMessage = error.message;
       }
       
       toast({
-        title: "Conversion Failed",
+        title: "❌ Conversion Failed",
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
-      setIsConverting(false);
     }
   };
 
@@ -140,10 +149,7 @@ const PDFToPowerPoint = () => {
                   className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 h-12 text-lg"
                 >
                   {isConverting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                      Converting... Please wait
-                    </>
+                    "Converting..."
                   ) : (
                     <>
                       <Download className="w-5 h-5 mr-2" />

@@ -3,89 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    
-    <!-- Optimized viewport for all devices -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, viewport-fit=cover, user-scalable=yes" />
-    
-    <!-- iOS specific meta tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="PDF Tools" />
-    
-    <!-- Android specific meta tags -->
-    <meta name="mobile-web-app-capable" content="yes" />
-    
-    <!-- Disable auto-detection -->
-    <meta name="format-detection" content="telephone=no" />
-    <meta name="format-detection" content="date=no" />
-    <meta name="format-detection" content="address=no" />
-    <meta name="format-detection" content="email=no" />
-    
-    <!-- Performance Optimizations - Remove Google Fonts dependency -->
-    <!-- Using system fonts for instant render - no network requests -->
-    
-    <!-- Performance hints - Load order matters! -->
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="theme-color" content="#8b5cf6" />
-    
-    <!-- DNS Prefetch for external resources -->
-    <link rel="dns-prefetch" href="https://pdftools-backend.onrender.com" />
-    <link rel="preconnect" href="https://pdftools-backend.onrender.com" crossorigin />
-    
-    <!-- Preload critical resources in order of importance -->
-    <link rel="modulepreload" href="/src/main.tsx" />
-    <link rel="modulepreload" href="/src/App.tsx" />
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PDFTools - Free Online PDF Tools</title>
     <meta name="description" content="Free online PDF tools for merging, splitting, compressing, converting, and editing PDFs. Fast, secure, and easy to use." />
-    
-    <!-- PWA Manifest - defer -->
-    <link rel="manifest" href="/manifest.json" />
-    
-    <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" href="/vite.svg" />
     <style>
-      /* Critical CSS - Inline for instant render */
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      
-      /* System font stack - instant render, zero network requests */
+      /* Animated Background - ReactBits.dev Inspired */
       body {
         margin: 0;
         padding: 0;
         overflow-x: hidden;
-        /* System fonts only - no web fonts loaded */
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', sans-serif;
-        /* Performance optimizations */
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-rendering: optimizeSpeed;
-        /* Prevent layout shifts */
-        min-height: 100vh;
-      }
-      
-      /* Loading state - show content immediately */
-      #root {
-        min-height: 100vh;
-        display: block;
-      }
-      
-      /* Critical button styles - inline for instant render */
-      button, .button {
-        font-family: inherit;
-        cursor: pointer;
-        border: none;
-        outline: none;
-      }
-      
-      /* Critical card styles */
-      .card {
-        background: rgba(255, 255, 255, 0.9);
-        border-radius: 8px;
-        padding: 1rem;
       }
       
       /* Gradient Mesh Background */
@@ -107,7 +33,7 @@
         50% { background-position: 100% 50%; }
       }
       
-      /* Animated Orbs - GPU accelerated, zero layout shift */
+      /* Animated Orbs */
       .orb {
         position: fixed;
         border-radius: 50%;
@@ -115,22 +41,6 @@
         opacity: 0.5;
         animation: float 20s ease-in-out infinite;
         z-index: -1;
-        /* GPU acceleration */
-        will-change: transform;
-        transform: translateZ(0);
-        backface-visibility: hidden;
-        /* Prevent layout shift */
-        contain: layout style paint;
-        /* Reserve space immediately */
-        content-visibility: auto;
-      }
-      
-      /* Reduce orb effects on mobile for better performance */
-      @media (max-width: 768px) {
-        .orb {
-          filter: blur(40px);
-          opacity: 0.3;
-        }
       }
       
       .orb-1 {
@@ -140,8 +50,6 @@
         top: -200px;
         left: -200px;
         animation-delay: 0s;
-        /* Fixed position prevents layout shift */
-        transform: translate3d(0, 0, 0);
       }
       
       .orb-2 {
@@ -151,8 +59,6 @@
         bottom: -150px;
         right: -150px;
         animation-delay: 5s;
-        /* Fixed position prevents layout shift */
-        transform: translate3d(0, 0, 0);
       }
       
       .orb-3 {
@@ -161,39 +67,20 @@
         background: radial-gradient(circle, rgba(236, 72, 153, 0.8), transparent);
         top: 50%;
         left: 50%;
-        /* Use translate3d instead of translate to prevent layout shift */
-        transform: translate3d(-50%, -50%, 0);
+        transform: translate(-50%, -50%);
         animation-delay: 10s;
       }
       
       @keyframes float {
         0%, 100% {
-          /* Use translate3d to prevent layout shift */
-          transform: translate3d(0, 0, 0) scale(1);
+          transform: translate(0, 0) scale(1);
         }
         33% {
-          transform: translate3d(50px, -50px, 0) scale(1.1);
+          transform: translate(50px, -50px) scale(1.1);
         }
         66% {
-          transform: translate3d(-50px, 50px, 0) scale(0.9);
+          transform: translate(-50px, 50px) scale(0.9);
         }
-      }
-      
-      /* Special animation for orb-3 to maintain centering */
-      @keyframes floatCentered {
-        0%, 100% {
-          transform: translate3d(-50%, -50%, 0) scale(1);
-        }
-        33% {
-          transform: translate3d(calc(-50% + 50px), calc(-50% - 50px), 0) scale(1.1);
-        }
-        66% {
-          transform: translate3d(calc(-50% - 50px), calc(-50% + 50px), 0) scale(0.9);
-        }
-      }
-      
-      .orb-3 {
-        animation: floatCentered 20s ease-in-out infinite !important;
       }
       
       /* Grid Pattern Overlay */
@@ -225,41 +112,6 @@
     <div class="orb orb-3"></div>
     
     <div id="root"></div>
-    
-    <!-- Load main script with optimal timing -->
     <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- Optimize resource loading and reduce critical path -->
-    <script>
-      // Prevent font loading from blocking render
-      if ('fonts' in document) {
-        // Use system fonts immediately, no web font loading
-        document.fonts.ready.then(() => {
-          document.body.style.fontDisplay = 'swap';
-        });
-      }
-      
-      // Defer non-critical resources
-      window.addEventListener('load', () => {
-        // Use scheduler API if available
-        const scheduleTask = (task) => {
-          if ('scheduler' in window && 'postTask' in window.scheduler) {
-            window.scheduler.postTask(task, { priority: 'background' });
-          } else if ('requestIdleCallback' in window) {
-            requestIdleCallback(task, { timeout: 2000 });
-          } else {
-            setTimeout(task, 1);
-          }
-        };
-        
-        // Defer manifest loading
-        scheduleTask(() => {
-          const manifestLink = document.querySelector('link[rel="manifest"]');
-          if (manifestLink && !manifestLink.href) {
-            manifestLink.href = '/manifest.json';
-          }
-        });
-      });
-    </script>
   </body>
 </html>

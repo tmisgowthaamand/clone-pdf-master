@@ -26,32 +26,35 @@ const ExcelToPDF = () => {
     if (files.length === 0) return;
     const file = files[0];
     setIsConverting(true);
-    
+
     try {
+      const fileType = file.name.endsWith('.csv') ? 'CSV' : 'Excel';
+      const fileSize = (file.size / 1024 / 1024).toFixed(2); // MB
+      const estimatedTime = file.size > 5 * 1024 * 1024 ? '30-45 seconds' : '10-20 seconds';
+
+      toast({
+        title: "Converting...",
+        description: `Converting ${fileType} (${fileSize}MB) to PDF. Estimated time: ${estimatedTime}`,
+      });
+
       const formData = new FormData();
       formData.append('file', file);
 
-      // Show progress toast
-      const fileType = file.name.endsWith('.csv') ? 'CSV' : 'Excel';
-      toast({
-        title: "Converting...",
-        description: `Converting ${fileType} to PDF. This may take a moment.`,
-      });
-
-      // Add timeout for cloud deployments (60 seconds)
+      const timeoutDuration = file.size > 5 * 1024 * 1024 ? 90000 : 60000;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
       const response = await fetch(API_ENDPOINTS.EXCEL_TO_PDF, {
         method: 'POST',
         body: formData,
         signal: controller.signal,
+        keepalive: true,
       });
 
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Conversion failed' }));
+        const error = await response.json();
         throw new Error(error.error || 'Conversion failed');
       }
 
@@ -70,17 +73,9 @@ const ExcelToPDF = () => {
         description: `${fileType} converted to PDF successfully!`,
       });
     } catch (error: any) {
-      let errorMessage = "Failed to convert file to PDF";
-      
-      if (error.name === 'AbortError') {
-        errorMessage = "Conversion timeout. Please try a smaller file or try again later.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
       toast({
         title: "Conversion Failed",
-        description: errorMessage,
+        description: error.message || "Failed to convert file to PDF",
         variant: "destructive",
       });
     } finally {
@@ -143,10 +138,7 @@ const ExcelToPDF = () => {
                   className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 h-12 text-lg"
                 >
                   {isConverting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                      Converting... Please wait
-                    </>
+                    "Converting..."
                   ) : (
                     <>
                       <Download className="w-5 h-5 mr-2" />

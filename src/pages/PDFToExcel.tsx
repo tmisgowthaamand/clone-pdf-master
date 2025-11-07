@@ -31,26 +31,13 @@ const PDFToExcel = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      // Show progress toast
-      toast({
-        title: "Converting...",
-        description: "Extracting tables from PDF. This may take a moment.",
-      });
-
-      // Add timeout for cloud deployments (60 seconds)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
-
       const response = await fetch(API_ENDPOINTS.PDF_TO_EXCEL, {
         method: 'POST',
         body: formData,
-        signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
-
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Conversion failed' }));
+        const error = await response.json();
         throw new Error(error.error || 'Conversion failed');
       }
 
@@ -66,20 +53,12 @@ const PDFToExcel = () => {
 
       toast({
         title: "Success!",
-        description: "PDF converted to Excel successfully!",
+        description: `PDF converted to Excel successfully!`,
       });
     } catch (error: any) {
-      let errorMessage = "Failed to convert PDF to Excel";
-      
-      if (error.name === 'AbortError') {
-        errorMessage = "Conversion timeout. Please try a smaller file or try again later.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
       toast({
         title: "Conversion Failed",
-        description: errorMessage,
+        description: error.message || "Failed to convert PDF to Excel",
         variant: "destructive",
       });
     } finally {
@@ -142,10 +121,7 @@ const PDFToExcel = () => {
                   className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 h-12 text-lg"
                 >
                   {isConverting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                      Converting... Please wait
-                    </>
+                    "Converting..."
                   ) : (
                     <>
                       <Download className="w-5 h-5 mr-2" />
