@@ -28,16 +28,34 @@ const PDFToExcel = () => {
     setIsConverting(true);
 
     try {
+      // Show progress with estimated time
+      const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+      const estimatedTime = file.size > 5 * 1024 * 1024 ? '1-2 minutes' : '30-45 seconds';
+      
+      toast({
+        title: "Converting...",
+        description: `Extracting tables from PDF (${fileSizeMB}MB). Estimated time: ${estimatedTime}`,
+      });
+
       const formData = new FormData();
       formData.append('file', file);
+
+      // Longer timeout for PDF to Excel (table extraction can be slow)
+      const timeoutDuration = file.size > 5 * 1024 * 1024 ? 180000 : 120000; // 3 min or 2 min
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
       const response = await fetch(API_ENDPOINTS.PDF_TO_EXCEL, {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
+        keepalive: true,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ error: 'Conversion failed' }));
         throw new Error(error.error || 'Conversion failed');
       }
 
@@ -56,9 +74,17 @@ const PDFToExcel = () => {
         description: `PDF converted to Excel successfully!`,
       });
     } catch (error: any) {
+      let errorMessage = "Failed to convert PDF to Excel";
+      
+      if (error.name === 'AbortError') {
+        errorMessage = "Conversion timeout. Please try a smaller PDF or try again later.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Conversion Failed",
-        description: error.message || "Failed to convert PDF to Excel",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
