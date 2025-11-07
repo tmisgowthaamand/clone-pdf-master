@@ -3,16 +3,15 @@ import { API_ENDPOINTS } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/FileUpload";
 import { FileList } from "@/components/FileList";
-import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Download, Sheet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
+import { useConversion } from "@/hooks/useConversion";
 
 const ExcelToPDF = () => {
-  const { toast } = useToast();
   const [files, setFiles] = useState<File[]>([]);
-  const [isConverting, setIsConverting] = useState(false);
+  const { convert, isConverting } = useConversion();
 
   const handleFilesSelected = (newFiles: File[]) => {
     setFiles(newFiles);
@@ -25,63 +24,15 @@ const ExcelToPDF = () => {
   const handlePythonConversion = async () => {
     if (files.length === 0) return;
     const file = files[0];
-    setIsConverting(true);
 
-    try {
-      const fileType = file.name.endsWith('.csv') ? 'CSV' : 'Excel';
-      const fileSize = (file.size / 1024 / 1024).toFixed(2); // MB
-      const estimatedTime = file.size > 5 * 1024 * 1024 ? '30-45 seconds' : '10-20 seconds';
-
-      toast({
-        title: "Converting...",
-        description: `Converting ${fileType} (${fileSize}MB) to PDF. Estimated time: ${estimatedTime}`,
-      });
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const timeoutDuration = file.size > 5 * 1024 * 1024 ? 90000 : 60000;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
-
-      const response = await fetch(API_ENDPOINTS.EXCEL_TO_PDF, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal,
-        keepalive: true,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Conversion failed');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name.replace(/\.(xls|xlsx|csv)$/i, '.pdf');
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "Success!",
-        description: `${fileType} converted to PDF successfully!`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Conversion Failed",
-        description: error.message || "Failed to convert file to PDF",
-        variant: "destructive",
-      });
-    } finally {
-      setIsConverting(false);
-    }
+    await convert(file, {
+      endpoint: API_ENDPOINTS.EXCEL_TO_PDF,
+      outputExtension: 'pdf',
+      mimeType: 'application/pdf',
+      successMessage: 'Excel/CSV converted to PDF successfully!',
+    });
   };
+
 
   return (
     <div className="min-h-screen bg-background">

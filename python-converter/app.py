@@ -40,17 +40,28 @@ import requests
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # For session management
 
-# Configure CORS to allow frontend access
+# Configure CORS to allow frontend access - Enhanced for production
 ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', '*').split(',')
-CORS(app, resources={
-    r"/api/*": {
-        "origins": ALLOWED_ORIGINS if ALLOWED_ORIGINS != ['*'] else "*",
-        "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
-        "supports_credentials": True,
-        "expose_headers": ["Content-Disposition"]
-    }
-})
+CORS(app, 
+    resources={
+        r"/api/*": {
+            "origins": ALLOWED_ORIGINS if ALLOWED_ORIGINS != ['*'] else "*",
+            "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+            "supports_credentials": True,
+            "expose_headers": ["Content-Disposition", "Content-Type"],
+            "max_age": 3600  # Cache preflight for 1 hour
+        },
+        r"/health": {
+            "origins": "*",
+            "methods": ["GET", "HEAD", "OPTIONS"]
+        }
+    },
+    # Global CORS settings
+    send_wildcard=False,
+    always_send=True,
+    automatic_options=True
+)
 
 # Add LibreOffice to PATH (cross-platform)
 if sys.platform == 'win32':
@@ -60,6 +71,27 @@ if sys.platform == 'win32':
 
 ALLOWED_EXTENSIONS = {'ppt', 'pptx', 'pdf', 'doc', 'docx'}
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
+
+# Additional CORS headers for all responses
+@app.after_request
+def after_request(response):
+    """Add CORS headers to all responses for better compatibility"""
+    origin = request.headers.get('Origin')
+    
+    # Check if origin is allowed
+    if origin:
+        if ALLOWED_ORIGINS == ['*'] or origin in ALLOWED_ORIGINS:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+        elif '*' in ALLOWED_ORIGINS:
+            response.headers['Access-Control-Allow-Origin'] = '*'
+    
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept'
+    response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Type'
+    response.headers['Access-Control-Max-Age'] = '3600'
+    
+    return response
 
 def allowed_file(filename, allowed_types=None):
     if allowed_types is None:

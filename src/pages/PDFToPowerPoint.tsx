@@ -3,16 +3,15 @@ import { API_ENDPOINTS } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/FileUpload";
 import { FileList } from "@/components/FileList";
-import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Presentation, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
+import { useConversion } from "@/hooks/useConversion";
 
 const PDFToPowerPoint = () => {
-  const { toast } = useToast();
   const [files, setFiles] = useState<File[]>([]);
-  const [isConverting, setIsConverting] = useState(false);
+  const { convert, isConverting } = useConversion();
 
   const handleFilesSelected = (newFiles: File[]) => {
     setFiles(newFiles);
@@ -25,75 +24,16 @@ const PDFToPowerPoint = () => {
   const handlePythonConversion = async () => {
     if (files.length === 0) return;
     const file = files[0];
-    setIsConverting(true);
-    
-    try {
-      // Calculate estimated time based on file size
-      const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
-      const estimatedTime = file.size > 10 * 1024 * 1024 ? '2-3 minutes' : '30-60 seconds';
-      
-      toast({
-        title: "🚀 Starting Conversion...",
-        description: `Converting PDF (${fileSizeMB}MB) to PowerPoint. Estimated time: ${estimatedTime}`,
-      });
 
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // Longer timeout for PDF to PowerPoint (can be slow for large files)
-      const timeoutDuration = file.size > 10 * 1024 * 1024 ? 180000 : 120000; // 3 min or 2 min
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
-      
-      const response = await fetch(API_ENDPOINTS.PDF_TO_PPTX, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal,
-        keepalive: true,
-      });
-      
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Conversion failed');
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name.replace(/\.pdf$/i, '.pptx');
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "✅ Conversion Complete!",
-        description: "PDF converted to PowerPoint successfully",
-      });
-      
-      setIsConverting(false);
-    } catch (error: any) {
-      console.error('Conversion error:', error);
-      setIsConverting(false);
-      
-      let errorMessage = 'Make sure Python backend is running on port 5000';
-      
-      if (error.name === 'AbortError') {
-        errorMessage = 'Conversion timeout. Please try a smaller PDF or try again later.';
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: "❌ Conversion Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
+    await convert(file, {
+      endpoint: API_ENDPOINTS.PDF_TO_PPTX,
+      outputExtension: 'pptx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      successMessage: 'PDF converted to PowerPoint successfully!',
+      estimatedTime: file.size > 10 * 1024 * 1024 ? '2-3 minutes' : '30-60 seconds',
+    });
   };
+
 
   return (
     <div className="min-h-screen bg-background">

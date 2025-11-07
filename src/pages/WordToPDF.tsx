@@ -3,16 +3,15 @@ import { API_ENDPOINTS } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/FileUpload";
 import { FileList } from "@/components/FileList";
-import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Download, FileText } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
+import { useConversion } from "@/hooks/useConversion";
 
 const WordToPDF = () => {
-  const { toast } = useToast();
   const [files, setFiles] = useState<File[]>([]);
-  const [isConverting, setIsConverting] = useState(false);
+  const { convert, isConverting } = useConversion();
 
   const handleFilesSelected = (newFiles: File[]) => {
     setFiles(newFiles);
@@ -25,46 +24,15 @@ const WordToPDF = () => {
   const handlePythonConversion = async () => {
     if (files.length === 0) return;
     const file = files[0];
-    setIsConverting(true);
-    
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await fetch(API_ENDPOINTS.WORD_TO_PDF, {
-        method: 'POST',
-        body: formData,
-      });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Conversion failed');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name.replace(/\.(doc|docx)$/i, '.pdf');
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "Success!",
-        description: `Converted ${file.name} to PDF successfully!`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Conversion Failed",
-        description: error.message || "Failed to convert Word to PDF",
-        variant: "destructive"
-      });
-    } finally {
-      setIsConverting(false);
-    }
+    await convert(file, {
+      endpoint: API_ENDPOINTS.WORD_TO_PDF,
+      outputExtension: 'pdf',
+      mimeType: 'application/pdf',
+      successMessage: 'Word document converted to PDF successfully!',
+    });
   };
+
 
   return (
     <div className="min-h-screen bg-background">

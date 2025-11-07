@@ -3,16 +3,15 @@ import { API_ENDPOINTS } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/FileUpload";
 import { FileList } from "@/components/FileList";
-import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Download, Sheet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
+import { useConversion } from "@/hooks/useConversion";
 
 const PDFToExcel = () => {
-  const { toast } = useToast();
   const [files, setFiles] = useState<File[]>([]);
-  const [isConverting, setIsConverting] = useState(false);
+  const { convert, isConverting } = useConversion();
 
   const handleFilesSelected = (newFiles: File[]) => {
     setFiles(newFiles);
@@ -25,85 +24,13 @@ const PDFToExcel = () => {
   const handlePythonConversion = async () => {
     if (files.length === 0) return;
     const file = files[0];
-    setIsConverting(true);
 
-    try {
-      // Show progress with estimated time
-      const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
-      const estimatedTime = file.size > 5 * 1024 * 1024 ? '1-2 minutes' : '30-45 seconds';
-      
-      console.log('Starting PDF to Excel conversion...');
-      console.log('File:', file.name, 'Size:', fileSizeMB, 'MB');
-      console.log('API Endpoint:', API_ENDPOINTS.PDF_TO_EXCEL);
-      
-      toast({
-        title: "🚀 Converting PDF to Excel...",
-        description: `Extracting tables, logo, and headers (${fileSizeMB}MB). Estimated: ${estimatedTime}`,
-      });
-
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      console.log('FormData created, sending request...');
-
-      // Longer timeout for PDF to Excel (table extraction can be slow)
-      const timeoutDuration = file.size > 5 * 1024 * 1024 ? 180000 : 120000; // 3 min or 2 min
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
-
-      const response = await fetch(API_ENDPOINTS.PDF_TO_EXCEL, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal,
-        keepalive: true,
-      });
-
-      clearTimeout(timeoutId);
-      
-      console.log('Response received:', response.status, response.statusText);
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Conversion failed' }));
-        console.error('Conversion error response:', error);
-        throw new Error(error.error || 'Conversion failed');
-      }
-
-      console.log('Converting response to blob...');
-      const blob = await response.blob();
-      console.log('Blob received, size:', blob.size, 'bytes');
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name.replace('.pdf', '.xlsx');
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "✅ Success!",
-        description: `Bank statement converted with logo, headers, and perfect alignment!`,
-      });
-    } catch (error: any) {
-      console.error('PDF to Excel conversion error:', error);
-      let errorMessage = "Failed to convert PDF to Excel";
-      
-      if (error.name === 'AbortError') {
-        errorMessage = "Conversion timeout. Please try a smaller PDF or try again later.";
-      } else if (error.message.includes('Failed to fetch')) {
-        errorMessage = "Backend server is not responding. Please check if the Python backend is running.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: "❌ Conversion Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsConverting(false);
-    }
+    await convert(file, {
+      endpoint: API_ENDPOINTS.PDF_TO_EXCEL,
+      outputExtension: 'xlsx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      successMessage: 'Bank statement converted with logo, headers, and perfect alignment!',
+    });
   };
 
   return (
