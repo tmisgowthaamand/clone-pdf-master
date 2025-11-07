@@ -29,20 +29,27 @@ const PDFToPowerPoint = () => {
     
     try {
       toast({
-        title: "🚀 Starting Conversion...",
-        description: "Converting PDF to PowerPoint...",
+        title: "Converting...",
+        description: "Converting PDF to PowerPoint. This may take a moment.",
       });
 
       const formData = new FormData();
       formData.append('file', file);
       
+      // Add timeout for cloud deployments (90 seconds for larger PDFs)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
+      
       const response = await fetch(API_ENDPOINTS.PDF_TO_PPTX, {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ error: 'Conversion failed' }));
         throw new Error(error.error || 'Conversion failed');
       }
 
@@ -57,20 +64,25 @@ const PDFToPowerPoint = () => {
       URL.revokeObjectURL(url);
 
       toast({
-        title: "✅ Conversion Complete!",
-        description: "PDF converted to PowerPoint successfully",
+        title: "Success!",
+        description: "PDF converted to PowerPoint successfully!",
       });
+    } catch (error: any) {
+      let errorMessage = "Failed to convert PDF to PowerPoint";
       
-      setIsConverting(false);
-    } catch (error) {
-      console.error('Conversion error:', error);
-      setIsConverting(false);
+      if (error.name === 'AbortError') {
+        errorMessage = "Conversion timeout. Please try a smaller file or try again later.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
       
       toast({
-        title: "❌ Conversion Failed",
-        description: error instanceof Error ? error.message : 'Make sure Python backend is running on port 5000',
+        title: "Conversion Failed",
+        description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsConverting(false);
     }
   };
 
@@ -128,7 +140,10 @@ const PDFToPowerPoint = () => {
                   className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 h-12 text-lg"
                 >
                   {isConverting ? (
-                    "Converting..."
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                      Converting... Please wait
+                    </>
                   ) : (
                     <>
                       <Download className="w-5 h-5 mr-2" />

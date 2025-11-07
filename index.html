@@ -3,15 +3,66 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Optimized viewport for all devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, viewport-fit=cover, user-scalable=yes" />
+    
+    <!-- iOS specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PDF Tools" />
+    
+    <!-- Android specific meta tags -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- Disable auto-detection -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="format-detection" content="date=no" />
+    <meta name="format-detection" content="address=no" />
+    <meta name="format-detection" content="email=no" />
+    
+    <!-- Performance Optimizations -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    
+    <!-- Preload critical resources -->
+    <link rel="modulepreload" href="/src/main.tsx" />
+    
     <title>PDFTools - Free Online PDF Tools</title>
     <meta name="description" content="Free online PDF tools for merging, splitting, compressing, converting, and editing PDFs. Fast, secure, and easy to use." />
+    
+    <!-- Performance hints -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="theme-color" content="#8b5cf6" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="/vite.svg" />
+    
+    <!-- Optimize resource loading -->
+    <link rel="prefetch" href="/src/App.tsx" />
+    <link rel="prerender" href="/" />
     <style>
-      /* Animated Background - ReactBits.dev Inspired */
+      /* Critical CSS - Inline for instant render */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      /* Animated Background - Optimized */
       body {
         margin: 0;
         padding: 0;
         overflow-x: hidden;
+        /* Performance optimizations */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeSpeed;
       }
       
       /* Gradient Mesh Background */
@@ -33,7 +84,7 @@
         50% { background-position: 100% 50%; }
       }
       
-      /* Animated Orbs */
+      /* Animated Orbs - GPU accelerated */
       .orb {
         position: fixed;
         border-radius: 50%;
@@ -41,6 +92,18 @@
         opacity: 0.5;
         animation: float 20s ease-in-out infinite;
         z-index: -1;
+        /* GPU acceleration */
+        will-change: transform;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+      
+      /* Reduce orb effects on mobile for better performance */
+      @media (max-width: 768px) {
+        .orb {
+          filter: blur(40px);
+          opacity: 0.3;
+        }
       }
       
       .orb-1 {

@@ -1,42 +1,57 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { BackgroundSwitcher } from "@/components/BackgroundSwitcher";
-import { AnimatedCharacter } from "@/components/AnimatedCharacter";
-import { FloatingImages } from "@/components/FloatingImages";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import Index from "./pages/Index";
-import PowerPointToPDF from "./pages/PowerPointToPDF";
-import PDFToPowerPoint from "./pages/PDFToPowerPoint";
-import WordToPDF from "./pages/WordToPDF";
-import PDFToWord from "./pages/PDFToWord";
-import PDFToExcel from "./pages/PDFToExcel";
-import ExcelToPDF from "./pages/ExcelToPDF";
-import JPGToPDF from "./pages/JPGToPDF";
-import PDFToJPG from "./pages/PDFToJPG";
-import HTMLToPDF from "./pages/HTMLToPDF";
-import MergePDF from "./pages/MergePDF";
-import SplitPDF from "./pages/SplitPDF";
-import CompressPDF from "./pages/CompressPDF";
-import RotatePDF from "./pages/RotatePDF";
-import EditPDF from "./pages/EditPDF";
-import ProtectPDF from "./pages/ProtectPDF";
-import UnlockPDF from "./pages/UnlockPDF";
-import SignPDF from "./pages/SignPDF";
-import WatermarkPDF from "./pages/WatermarkPDF";
+
+// Lazy load heavy components for better performance
+const BackgroundSwitcher = lazy(() => import("@/components/BackgroundSwitcher").then(m => ({ default: m.BackgroundSwitcher })));
+const AnimatedCharacter = lazy(() => import("@/components/AnimatedCharacter").then(m => ({ default: m.AnimatedCharacter })));
+const FloatingImages = lazy(() => import("@/components/FloatingImages").then(m => ({ default: m.FloatingImages })));
+
+// Lazy load all page components
+const Index = lazy(() => import("./pages/Index"));
+const PowerPointToPDF = lazy(() => import("./pages/PowerPointToPDF"));
+const PDFToPowerPoint = lazy(() => import("./pages/PDFToPowerPoint"));
+const WordToPDF = lazy(() => import("./pages/WordToPDF"));
+const PDFToWord = lazy(() => import("./pages/PDFToWord"));
+const PDFToExcel = lazy(() => import("./pages/PDFToExcel"));
+const ExcelToPDF = lazy(() => import("./pages/ExcelToPDF"));
+const JPGToPDF = lazy(() => import("./pages/JPGToPDF"));
+const PDFToJPG = lazy(() => import("./pages/PDFToJPG"));
+const HTMLToPDF = lazy(() => import("./pages/HTMLToPDF"));
+const MergePDF = lazy(() => import("./pages/MergePDF"));
+const SplitPDF = lazy(() => import("./pages/SplitPDF"));
+const CompressPDF = lazy(() => import("./pages/CompressPDF"));
+const RotatePDF = lazy(() => import("./pages/RotatePDF"));
+const EditPDF = lazy(() => import("./pages/EditPDF"));
+const ProtectPDF = lazy(() => import("./pages/ProtectPDF"));
+const UnlockPDF = lazy(() => import("./pages/UnlockPDF"));
+const SignPDF = lazy(() => import("./pages/SignPDF"));
+const WatermarkPDF = lazy(() => import("./pages/WatermarkPDF"));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+);
 
 function App() {
   return (
     <ThemeProvider>
       <LoadingScreen />
       <Router>
-        <BackgroundSwitcher />
-        <FloatingImages />
-        <AnimatedCharacter position="right" />
+        <Suspense fallback={<PageLoader />}>
+          <BackgroundSwitcher />
+          <FloatingImages />
+          <AnimatedCharacter position="right" />
+        </Suspense>
         <ThemeToggle />
         <div className="relative z-10">
-          <Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
             <Route path="/" element={<Index />} />
             {/* PowerPoint conversions */}
             <Route path="/pptx-to-pdf" element={<PowerPointToPDF />} />
@@ -66,7 +81,8 @@ function App() {
             <Route path="/unlock-pdf" element={<UnlockPDF />} />
             <Route path="/sign-pdf" element={<SignPDF />} />
             <Route path="/watermark-pdf" element={<WatermarkPDF />} />
-          </Routes>
+            </Routes>
+          </Suspense>
         </div>
         <Toaster />
       </Router>

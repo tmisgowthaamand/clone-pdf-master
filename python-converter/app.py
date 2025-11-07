@@ -125,10 +125,29 @@ def convert_with_libreoffice(input_path, output_dir):
 
 def convert_pdf_to_pptx(input_path, output_dir):
     """
-    Convert PDF to PPTX by converting pages to images - Optimized for speed
-    Uses pdf2image and python-pptx
+    Convert PDF to PPTX - Optimized for cloud deployments
+    Uses PyMuPDF (fast) with fallback to pdf2image
     """
+    # Try fast PyMuPDF converter first (3x faster, no poppler needed)
     try:
+        print(f"\n{'='*60}")
+        print(f"PDF TO PPTX CONVERSION - Cloud Optimized")
+        print(f"Input: {input_path}")
+        print(f"{'='*60}\n")
+        
+        print("Strategy 1: Fast PyMuPDF converter...")
+        from pdf_to_pptx_fast import convert_pdf_to_pptx_optimized
+        pptx_path = convert_pdf_to_pptx_optimized(input_path, output_dir, quality='balanced')
+        
+        if pptx_path and os.path.exists(pptx_path):
+            print("[OK] Fast converter succeeded")
+            return pptx_path
+    except Exception as e:
+        print(f"Fast converter failed: {e}")
+    
+    # Fallback to pdf2image (slower but works if PyMuPDF fails)
+    try:
+        print("\nStrategy 2: pdf2image converter (fallback)...")
         from pdf2image import convert_from_path
         from pptx import Presentation
         from pptx.util import Inches
@@ -136,9 +155,8 @@ def convert_pdf_to_pptx(input_path, output_dir):
         
         print(f"Converting PDF to PowerPoint: {input_path}")
         
-        # Optimized: Use lower DPI for faster conversion (200 instead of 300)
-        # Still maintains good quality while being 2x faster
-        dpi = 200
+        # Optimized: Use lower DPI for faster conversion
+        dpi = 150  # Reduced from 200 for even faster speed
         
         # Convert PDF pages to images (poppler is in PATH on Linux/Docker)
         images = convert_from_path(
@@ -160,7 +178,7 @@ def convert_pdf_to_pptx(input_path, output_dir):
             # Save image temporarily
             with tmp.NamedTemporaryFile(suffix='.png', delete=False) as tmp_img:
                 # Optimize: Use lower quality PNG for faster save
-                image.save(tmp_img.name, 'PNG', optimize=True)
+                image.save(tmp_img.name, 'PNG', optimize=True, compress_level=6)
                 tmp_img_path = tmp_img.name
             
             # Add blank slide
@@ -501,7 +519,7 @@ def convert_pdf_to_docx_endpoint():
 
 @app.route('/api/convert/pdf-to-excel', methods=['POST'])
 def pdf_to_excel():
-    """Convert PDF to Excel - Optimized for speed"""
+    """Convert PDF to Excel - Optimized for cloud deployments"""
     tmpdir = None
     try:
         if 'file' not in request.files:
@@ -522,6 +540,34 @@ def pdf_to_excel():
         pdf_path = os.path.join(tmpdir, filename)
         file.save(pdf_path)
         
+        print(f"\n{'='*60}")
+        print(f"PDF TO EXCEL CONVERSION - Cloud Optimized")
+        print(f"Input: {filename}")
+        print(f"{'='*60}\n")
+        
+        # Try fast converter first (optimized for cloud)
+        excel_path = None
+        try:
+            print("Strategy 1: Fast tabula-based converter...")
+            from pdf_to_excel_fast import convert_pdf_to_excel_optimized
+            excel_path = convert_pdf_to_excel_optimized(pdf_path, tmpdir)
+            
+            if excel_path and os.path.exists(excel_path):
+                print("[OK] Fast converter succeeded")
+                excel_name = os.path.basename(excel_path)
+                
+                return send_file(
+                    excel_path,
+                    as_attachment=True,
+                    download_name=excel_name,
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+        except Exception as e:
+            print(f"Fast converter failed: {e}")
+            excel_path = None
+        
+        # Fallback to camelot-based converter (slower but more accurate)
+        print("\nStrategy 2: Camelot-based converter (fallback)...")
         print(f"Converting PDF to Excel: {filename}")
         
         # Use PyMuPDF to extract images, text, and tables
@@ -601,19 +647,20 @@ def pdf_to_excel():
         # Start table from row 4 (right after title)
         current_row = 4
         
-        # Now extract tables using Camelot
-        print("\nExtracting tables...")
+        # Now extract tables using Camelot (optimized settings)
+        print("\nExtracting tables with Camelot...")
         all_tables = []
         
-        # Try lattice mode first
+        # Try lattice mode first with optimized settings
         try:
-            print("Strategy 1: Lattice mode (bordered tables)...")
+            print("Lattice mode (bordered tables)...")
             tables = camelot.read_pdf(
                 str(pdf_path), 
                 pages='all', 
                 flavor='lattice',
                 line_scale=40,
-                shift_text=['l', 't']
+                shift_text=['l', 't'],
+                process_background=False  # Faster processing
             )
             if tables and len(tables) > 0:
                 for idx, table in enumerate(tables):
@@ -654,17 +701,18 @@ def pdf_to_excel():
         except Exception as e:
             print(f"  Lattice mode failed: {str(e)}")
         
-        # Try stream mode if no tables found
+        # Try stream mode if no tables found (optimized)
         if not all_tables:
             try:
-                print("Strategy 2: Stream mode (borderless tables)...")
+                print("Stream mode (borderless tables)...")
                 tables = camelot.read_pdf(
                     str(pdf_path), 
                     pages='all', 
                     flavor='stream',
                     edge_tol=50,
                     row_tol=10,
-                    column_tol=10
+                    column_tol=10,
+                    strip_text='\n'  # Faster text processing
                 )
                 if tables and len(tables) > 0:
                     for idx, table in enumerate(tables):
@@ -1391,7 +1439,7 @@ def convert_csv_to_excel_api(csv_path, output_dir):
         return None
 
 def convert_excel_to_pdf_professional_api(excel_path, output_dir):
-    """Professional Excel to PDF using COM automation"""
+    """Professional Excel to PDF using COM automation (Windows only)"""
     try:
         import win32com.client
         import pythoncom
@@ -1400,38 +1448,39 @@ def convert_excel_to_pdf_professional_api(excel_path, output_dir):
         excel = win32com.client.Dispatch("Excel.Application")
         excel.Visible = False
         excel.DisplayAlerts = False
+        excel.ScreenUpdating = False  # Faster processing
+        excel.Calculation = -4135  # xlCalculationManual - skip recalculation
         
-        workbook = excel.Workbooks.Open(os.path.abspath(excel_path))
+        workbook = excel.Workbooks.Open(os.path.abspath(excel_path), ReadOnly=True, UpdateLinks=False)
         
         base_name = os.path.splitext(os.path.basename(excel_path))[0]
         pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
         
-        # Configure page setup
-        for worksheet in workbook.Worksheets:
-            worksheet.PageSetup.Zoom = False
-            worksheet.PageSetup.FitToPagesWide = 1
-            worksheet.PageSetup.FitToPagesTall = False
-            
-            worksheet.PageSetup.LeftMargin = excel.InchesToPoints(0.2)
-            worksheet.PageSetup.RightMargin = excel.InchesToPoints(0.2)
-            worksheet.PageSetup.TopMargin = excel.InchesToPoints(0.3)
-            worksheet.PageSetup.BottomMargin = excel.InchesToPoints(0.3)
-            
-            # Landscape for wide tables
-            used_range = worksheet.UsedRange
-            if used_range.Columns.Count > 6:
-                worksheet.PageSetup.Orientation = 2  # Landscape
-            
-            worksheet.PageSetup.PrintQuality = 600
-            worksheet.PageSetup.PaperSize = 9  # A4
-            worksheet.PageSetup.CenterHorizontally = True
+        # Configure page setup - only for first sheet to save time
+        worksheet = workbook.Worksheets[0]
+        worksheet.PageSetup.Zoom = False
+        worksheet.PageSetup.FitToPagesWide = 1
+        worksheet.PageSetup.FitToPagesTall = False
+        worksheet.PageSetup.LeftMargin = excel.InchesToPoints(0.2)
+        worksheet.PageSetup.RightMargin = excel.InchesToPoints(0.2)
+        worksheet.PageSetup.TopMargin = excel.InchesToPoints(0.3)
+        worksheet.PageSetup.BottomMargin = excel.InchesToPoints(0.3)
         
-        # Export to PDF
+        # Landscape for wide tables
+        used_range = worksheet.UsedRange
+        if used_range.Columns.Count > 6:
+            worksheet.PageSetup.Orientation = 2  # Landscape
+        
+        worksheet.PageSetup.PrintQuality = 300  # Reduced from 600 for speed
+        worksheet.PageSetup.PaperSize = 9  # A4
+        worksheet.PageSetup.CenterHorizontally = True
+        
+        # Export to PDF with faster settings
         workbook.ExportAsFixedFormat(
             Type=0,
             Filename=os.path.abspath(pdf_path),
-            Quality=0,
-            IncludeDocProperties=True,
+            Quality=1,  # Standard quality (0=high, 1=standard) - faster
+            IncludeDocProperties=False,  # Skip metadata for speed
             IgnorePrintAreas=False,
             OpenAfterPublish=False
         )
@@ -1481,12 +1530,23 @@ def excel_to_pdf():
                 raise RuntimeError("CSV to Excel conversion failed")
             print(f"[OK] CSV converted to Excel: {os.path.basename(excel_path)}\n")
         
-        # Try professional Excel COM conversion first (iLovePDF quality)
+        # Try professional Excel COM conversion first (iLovePDF quality) - Windows only
         pdf_path = None
-        print("Step 2: Converting to PDF with Microsoft Excel COM...")
-        pdf_path = convert_excel_to_pdf_professional_api(excel_path, tmpdir)
         
-        # Fallback to LibreOffice if COM fails
+        # On Linux/cloud, skip COM and go straight to fast converter
+        if sys.platform != 'win32':
+            print("Step 2: Using fast Python converter (cloud-optimized)...")
+            try:
+                from excel_to_pdf_fast import convert_excel_to_pdf_optimized
+                pdf_path = convert_excel_to_pdf_optimized(excel_path, tmpdir)
+            except Exception as e:
+                print(f"Fast converter failed: {e}")
+                pdf_path = None
+        else:
+            print("Step 2: Converting to PDF with Microsoft Excel COM...")
+            pdf_path = convert_excel_to_pdf_professional_api(excel_path, tmpdir)
+        
+        # Fallback to LibreOffice if COM/fast converter fails
         if not pdf_path or not os.path.exists(pdf_path):
             print(f"\n{'='*60}")
             print(f"EXCEL TO PDF CONVERSION - LibreOffice (Fallback)")
@@ -1496,22 +1556,20 @@ def excel_to_pdf():
             # Detect LibreOffice executable based on platform
             if sys.platform == 'win32':
                 soffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
-                # Kill existing LibreOffice processes (Windows only)
+                # Kill existing LibreOffice processes (Windows only) - faster cleanup
                 try:
                     subprocess.run(['taskkill', '/F', '/IM', 'soffice.exe', '/T'], 
-                                  capture_output=True, timeout=5, encoding='utf-8', errors='replace')
+                                  capture_output=True, timeout=2, encoding='utf-8', errors='replace')
                     subprocess.run(['taskkill', '/F', '/IM', 'soffice.bin', '/T'], 
-                                  capture_output=True, timeout=5, encoding='utf-8', errors='replace')
-                    import time
-                    time.sleep(1)
+                                  capture_output=True, timeout=2, encoding='utf-8', errors='replace')
                 except:
                     pass
             else:
                 # Linux/Unix - use system LibreOffice
                 soffice_exe = shutil.which('soffice') or 'soffice'
             
-            # Convert with optimal settings - preserve images and formatting
-            # calc_pdf_Export preserves all images, logos, and formatting
+            # Optimized LibreOffice conversion for cloud deployments
+            # Reduced options for faster startup and conversion
             cmd = [
                 soffice_exe,
                 '--headless',
@@ -1527,13 +1585,15 @@ def excel_to_pdf():
             ]
             
             print(f"Running: {' '.join(cmd)}")
+            # Reduced timeout from 120s to 45s for faster failure detection
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=120,
+                timeout=45,
                 encoding='utf-8',
-                errors='replace'
+                errors='replace',
+                env={**os.environ, 'SAL_NO_XINITTHREADS': '1'}  # Faster X11 handling on Linux
             )
             
             if result.returncode != 0:

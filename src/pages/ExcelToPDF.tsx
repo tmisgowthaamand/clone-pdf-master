@@ -31,13 +31,27 @@ const ExcelToPDF = () => {
       const formData = new FormData();
       formData.append('file', file);
 
+      // Show progress toast
+      const fileType = file.name.endsWith('.csv') ? 'CSV' : 'Excel';
+      toast({
+        title: "Converting...",
+        description: `Converting ${fileType} to PDF. This may take a moment.`,
+      });
+
+      // Add timeout for cloud deployments (60 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+
       const response = await fetch(API_ENDPOINTS.EXCEL_TO_PDF, {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ error: 'Conversion failed' }));
         throw new Error(error.error || 'Conversion failed');
       }
 
@@ -51,15 +65,22 @@ const ExcelToPDF = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      const fileType = file.name.endsWith('.csv') ? 'CSV' : 'Excel';
       toast({
         title: "Success!",
         description: `${fileType} converted to PDF successfully!`,
       });
     } catch (error: any) {
+      let errorMessage = "Failed to convert file to PDF";
+      
+      if (error.name === 'AbortError') {
+        errorMessage = "Conversion timeout. Please try a smaller file or try again later.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Conversion Failed",
-        description: error.message || "Failed to convert file to PDF",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -122,7 +143,10 @@ const ExcelToPDF = () => {
                   className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 h-12 text-lg"
                 >
                   {isConverting ? (
-                    "Converting..."
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                      Converting... Please wait
+                    </>
                   ) : (
                     <>
                       <Download className="w-5 h-5 mr-2" />

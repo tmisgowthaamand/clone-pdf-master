@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:fast": "vite build --mode production",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "analyze": "vite build --mode production && npx vite-bundle-visualizer",
+    "clean": "rm -rf dist node_modules/.vite",
+    "deploy": "npm run build && vercel --prod"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.1.2",
