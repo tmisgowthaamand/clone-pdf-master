@@ -524,10 +524,12 @@ def pdf_to_excel():
         file.save(pdf_path)
         
         print(f"Converting PDF to Excel: {filename}")
+        print(f"File size: {os.path.getsize(pdf_path) / 1024:.2f} KB")
         
         # Use PyMuPDF to extract images, text, and tables
         import fitz
         doc = fitz.open(pdf_path)
+        print(f"Total pages: {len(doc)}")
         
         # Create Excel file
         excel_name = Path(filename).stem + '.xlsx'
@@ -648,12 +650,14 @@ def pdf_to_excel():
                 str(pdf_path), 
                 pages='all', 
                 flavor='lattice',
-                line_scale=40,  # Better line detection
+                line_scale=40,  # Better line detection for grid lines
                 shift_text=['l', 't'],  # Align text to left-top
                 suppress_stdout=True,  # 30% faster
                 strip_text='\n',  # Remove newlines for cleaner data
-                split_text=True  # Better text splitting
+                split_text=True,  # Better text splitting
+                copy_text=['v']  # Vertical text alignment
             )
+            print(f"  Found {len(tables)} tables with lattice mode")
             if tables and len(tables) > 0:
                 for idx, table in enumerate(tables):
                     df = table.df
@@ -689,9 +693,9 @@ def pdf_to_excel():
                             df = df.dropna(how='all')
                             
                             all_tables.append(df)
-                            print(f"  [OK] Table {idx + 1}: {len(df)} rows x {len(df.columns)} columns")
+                            print(f"  ✓ Table {idx + 1}: {len(df)} rows x {len(df.columns)} columns")
         except Exception as e:
-            print(f"  Lattice mode failed: {str(e)}")
+            print(f"  ✗ Lattice mode failed: {str(e)}")
         
         # Try stream mode if no tables found
         if not all_tables:
@@ -847,18 +851,25 @@ def pdf_to_excel():
             adjusted_width = min(max(max_length + 2, 12), 50)
             ws.column_dimensions[column_letter].width = adjusted_width
         
-        # Save workbook
+        # Save workbook with optimization
+        print("\n[SAVING] Creating Excel file...")
         wb.save(excel_path)
         doc.close()
         
-        print(f"[OK] Excel file created with logo and formatting: {excel_path}")
+        file_size_kb = os.path.getsize(excel_path) / 1024
+        print(f"[✓ SUCCESS] Excel file created: {excel_name} ({file_size_kb:.2f} KB)")
+        print(f"  - Logo: {'Yes' if logo_added else 'No'}")
+        print(f"  - Headers: {'Yes' if bank_name or statement_title else 'No'}")
+        print(f"  - Tables: {len(all_tables)}")
+        print(f"  - Total rows: {len(combined_df)}")
         print(f"{'='*60}\n")
         
         return send_file(
             excel_path,
             as_attachment=True,
             download_name=excel_name,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            max_age=0  # No caching for fresh download
         )
     
     except Exception as e:
