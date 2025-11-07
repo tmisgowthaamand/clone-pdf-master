@@ -42,26 +42,42 @@ app.secret_key = os.urandom(24)  # For session management
 
 # Configure CORS to allow frontend access - Enhanced for production
 ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', '*').split(',')
-CORS(app, 
-    resources={
-        r"/api/*": {
-            "origins": ALLOWED_ORIGINS if ALLOWED_ORIGINS != ['*'] else "*",
-            "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-            "supports_credentials": True,
-            "expose_headers": ["Content-Disposition", "Content-Type"],
-            "max_age": 3600  # Cache preflight for 1 hour
+# Handle wildcard case
+if ALLOWED_ORIGINS == ['*']:
+    CORS(app, 
+        resources={
+            r"/*": {
+                "origins": "*",
+                "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE", "HEAD"],
+                "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+                "expose_headers": ["Content-Disposition", "Content-Type"],
+                "max_age": 3600
+            }
         },
-        r"/health": {
-            "origins": "*",
-            "methods": ["GET", "HEAD", "OPTIONS"]
-        }
-    },
-    # Global CORS settings
-    send_wildcard=False,
-    always_send=True,
-    automatic_options=True
-)
+        send_wildcard=True,
+        always_send=True,
+        automatic_options=True
+    )
+else:
+    CORS(app, 
+        resources={
+            r"/api/*": {
+                "origins": ALLOWED_ORIGINS,
+                "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+                "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+                "supports_credentials": True,
+                "expose_headers": ["Content-Disposition", "Content-Type"],
+                "max_age": 3600
+            },
+            r"/health": {
+                "origins": "*",
+                "methods": ["GET", "HEAD", "OPTIONS"]
+            }
+        },
+        send_wildcard=False,
+        always_send=True,
+        automatic_options=True
+    )
 
 # Add LibreOffice to PATH (cross-platform)
 if sys.platform == 'win32':
@@ -78,15 +94,14 @@ def after_request(response):
     """Add CORS headers to all responses for better compatibility"""
     origin = request.headers.get('Origin')
     
-    # Check if origin is allowed
-    if origin:
-        if ALLOWED_ORIGINS == ['*'] or origin in ALLOWED_ORIGINS:
-            response.headers['Access-Control-Allow-Origin'] = origin
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
-        elif '*' in ALLOWED_ORIGINS:
-            response.headers['Access-Control-Allow-Origin'] = '*'
+    # Handle wildcard case
+    if ALLOWED_ORIGINS == ['*']:
+        response.headers['Access-Control-Allow-Origin'] = '*'
+    elif origin and origin in ALLOWED_ORIGINS:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
     
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE, HEAD'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept'
     response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Type'
     response.headers['Access-Control-Max-Age'] = '3600'
@@ -2426,10 +2441,18 @@ def index():
         }
     })
 
-@app.route('/health', methods=['GET', 'HEAD'])
+@app.route('/health', methods=['GET', 'HEAD', 'OPTIONS'])
 def health_check():
     """Health check endpoint for Render"""
+    if request.method == 'OPTIONS':
+        return '', 204
     return jsonify({'status': 'healthy'}), 200
+
+# Global OPTIONS handler for all API routes
+@app.route('/api/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    """Handle OPTIONS requests for CORS preflight"""
+    return '', 204
 
 @app.route('/api/info', methods=['GET'])
 def api_info():
