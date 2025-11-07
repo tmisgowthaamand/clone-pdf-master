@@ -24,8 +24,6 @@ jobs:
     
     - name: Build
       run: npm run build
-      env:
-        NODE_ENV: production
     
     - name: Check build output
       run: |
