@@ -503,17 +503,25 @@ def convert_pdf_to_docx_endpoint():
 @app.route('/api/convert/pdf-to-excel', methods=['POST'])
 def pdf_to_excel():
     """Convert PDF to Excel - Optimized for speed"""
+    print("\n" + "="*60)
+    print("PDF TO EXCEL CONVERSION REQUEST RECEIVED")
+    print("="*60)
     tmpdir = None
     try:
         if 'file' not in request.files:
+            print("ERROR: No file in request")
             return jsonify({'error': 'No file provided'}), 400
         
         file = request.files['file']
         if file.filename == '':
+            print("ERROR: Empty filename")
             return jsonify({'error': 'No file selected'}), 400
         
         if not allowed_file(file.filename, {'pdf'}):
+            print(f"ERROR: Invalid file type: {file.filename}")
             return jsonify({'error': 'Only PDF files are allowed'}), 400
+        
+        print(f"✓ File received: {file.filename}")
         
         # Create temp directory
         tmpdir = tempfile.mkdtemp()
@@ -529,7 +537,14 @@ def pdf_to_excel():
         # Use PyMuPDF to extract images, text, and tables
         import fitz
         doc = fitz.open(pdf_path)
-        print(f"Total pages: {len(doc)}")
+        total_pages = len(doc)
+        print(f"Total pages: {total_pages}")
+        
+        # For large PDFs, warn about processing time
+        if total_pages > 10:
+            print(f"⚠ Large PDF detected ({total_pages} pages)")
+            print(f"  Processing first 5 pages for faster conversion...")
+            print(f"  Estimated time: 20-30 seconds")
         
         # Create Excel file
         excel_name = Path(filename).stem + '.xlsx'
@@ -643,19 +658,24 @@ def pdf_to_excel():
         print("\nExtracting tables...")
         all_tables = []
         
-        # Try lattice mode first - Optimized for speed and accuracy
+        # Try lattice mode first - Optimized for MAXIMUM speed
         try:
             print("Strategy 1: Lattice mode (bordered tables)...")
+            # For large PDFs, process first 5 pages only for speed
+            page_range = '1-5' if len(doc) > 10 else 'all'
+            print(f"  Processing pages: {page_range} (Total: {len(doc)} pages)")
+            
             tables = camelot.read_pdf(
                 str(pdf_path), 
-                pages='all', 
+                pages=page_range,  # Limit pages for speed
                 flavor='lattice',
-                line_scale=40,  # Better line detection for grid lines
-                shift_text=['l', 't'],  # Align text to left-top
-                suppress_stdout=True,  # 30% faster
-                strip_text='\n',  # Remove newlines for cleaner data
-                split_text=True,  # Better text splitting
-                copy_text=['v']  # Vertical text alignment
+                line_scale=40,
+                shift_text=['l', 't'],
+                suppress_stdout=True,
+                strip_text='\n',
+                split_text=True,
+                copy_text=['v'],
+                parallel=True  # Enable parallel processing
             )
             print(f"  Found {len(tables)} tables with lattice mode")
             if tables and len(tables) > 0:
@@ -703,7 +723,7 @@ def pdf_to_excel():
                 print("Strategy 2: Stream mode (borderless tables)...")
                 tables = camelot.read_pdf(
                     str(pdf_path), 
-                    pages='all', 
+                    pages='1-5' if len(doc) > 10 else 'all',  # Limit pages for speed
                     flavor='stream',
                     edge_tol=50,
                     row_tol=10,
@@ -750,16 +770,38 @@ def pdf_to_excel():
                 print(f"  Stream mode failed: {str(e)}")
         
         if not all_tables:
-            # If no tables found, still save the workbook with logo and title
-            print("Warning: No tables found, saving logo and title only")
+            # If no tables found, try to extract text as fallback
+            print("⚠ Warning: No tables found with Camelot, extracting text as fallback...")
+            
+            # Extract all text from PDF and add to Excel
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                text = page.get_text()
+                if text.strip():
+                    # Add page text to Excel
+                    ws.cell(row=current_row, column=1, value=f"Page {page_num + 1}")
+                    ws.cell(row=current_row, column=1).font = Font(bold=True)
+                    current_row += 1
+                    
+                    # Split text into lines and add to Excel
+                    lines = text.strip().split('\n')
+                    for line in lines[:100]:  # Limit to 100 lines per page
+                        if line.strip():
+                            ws.cell(row=current_row, column=1, value=line.strip())
+                            current_row += 1
+                    current_row += 1  # Add spacing between pages
+            
             wb.save(excel_path)
             doc.close()
+            
+            print(f"[✓] Excel file created with text extraction: {excel_name}")
             
             return send_file(
                 excel_path,
                 as_attachment=True,
                 download_name=excel_name,
-                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                max_age=0
             )
         
         # Combine all tables with same structure
@@ -962,7 +1004,7 @@ def pdf_to_excel_OLD_BACKUP():
                 print("Strategy 2: Stream mode (borderless tables)...")
                 tables = camelot.read_pdf(
                     str(pdf_path), 
-                    pages='all', 
+                    pages='1-5' if len(doc) > 10 else 'all',  # Limit pages for speed
                     flavor='stream',
                     edge_tol=50,
                     row_tol=10,
