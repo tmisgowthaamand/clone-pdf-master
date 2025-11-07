@@ -8,9 +8,10 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "set NODE_ENV=production && tsc -b && vite build",
+    "build": "set NODE_ENV=production && vite build --mode production",
     "build:fast": "set NODE_ENV=production && vite build --mode production",
     "build:analyze": "set NODE_ENV=production && vite build --mode production && npx vite-bundle-visualizer",
+    "build:check": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "analyze": "vite build --mode production && npx vite-bundle-visualizer",
