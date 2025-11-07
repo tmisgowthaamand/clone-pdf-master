@@ -20,6 +20,10 @@
         {
           "key": "X-Content-Type-Options",
           "value": "nosniff"
+        },
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
         }
       ]
     },
@@ -50,6 +54,18 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Link",
+          "value": "</assets/index.js>; rel=modulepreload; as=script; crossorigin, </assets/index.css>; rel=preload; as=style; crossorigin, </assets/react-core.js>; rel=modulepreload; as=script; crossorigin"
+        },
+        {
+          "key": "X-DNS-Prefetch-Control",
+          "value": "on"
+        },
+        {
+          "key": "Early-Hints",
+          "value": "Link: </assets/index.js>; rel=modulepreload; as=script"
         }
       ]
     },

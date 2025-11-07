@@ -164,7 +164,34 @@ const SignPDF = () => {
     }
   };
 
-  // Canvas Drawing Functions
+  // Cache canvas rect to prevent forced reflows
+  const canvasRectRef = useRef<DOMRect | null>(null);
+  
+  // Update cached rect on mount and resize
+  useEffect(() => {
+    const updateCanvasRect = () => {
+      if (canvasRef.current) {
+        canvasRectRef.current = canvasRef.current.getBoundingClientRect();
+      }
+    };
+    
+    updateCanvasRect();
+    
+    // Debounced resize handler
+    let resizeTimeout: NodeJS.Timeout;
+    const handleResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(updateCanvasRect, 150);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimeout);
+    };
+  }, []);
+
+  // Canvas Drawing Functions - Optimized to prevent forced reflows
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -173,7 +200,13 @@ const SignPDF = () => {
     if (!ctx) return;
     
     setIsDrawing(true);
-    const rect = canvas.getBoundingClientRect();
+    
+    // Use cached rect instead of getBoundingClientRect
+    const rect = canvasRectRef.current || canvas.getBoundingClientRect();
+    if (!canvasRectRef.current) {
+      canvasRectRef.current = rect;
+    }
+    
     ctx.beginPath();
     ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
   };
@@ -187,13 +220,18 @@ const SignPDF = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    const rect = canvas.getBoundingClientRect();
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
+    // Use cached rect to avoid forced reflow
+    const rect = canvasRectRef.current || canvas.getBoundingClientRect();
+    
+    // Batch drawing operations with requestAnimationFrame
+    requestAnimationFrame(() => {
+      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    });
   };
 
   const stopDrawing = () => {

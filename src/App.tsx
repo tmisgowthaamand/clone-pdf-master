@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -39,6 +39,16 @@ const PageLoader = () => (
 );
 
 function App() {
+  // Defer heavy animations to reduce main-thread work
+  useEffect(() => {
+    // Mark animations as low priority
+    if ('scheduler' in window && 'postTask' in (window as any).scheduler) {
+      (window as any).scheduler.postTask(() => {
+        // Low priority animations will load after critical content
+      }, { priority: 'background' });
+    }
+  }, []);
+
   return (
     <ThemeProvider>
       <LoadingScreen />

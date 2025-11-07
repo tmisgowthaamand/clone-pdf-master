@@ -1,0 +1,36 @@
+# Vercel Edge Network Headers
+# Optimize for desktop performance and reduce critical path
+
+/*
+  X-DNS-Prefetch-Control: on
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: origin-when-cross-origin
+  # Preconnect to API only
+  Link: <https://pdftools-backend.onrender.com>; rel=dns-prefetch
+  Link: <https://pdftools-backend.onrender.com>; rel=preconnect; crossorigin
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+  # Enable compression
+  Content-Encoding: br
+
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: application/javascript; charset=utf-8
+  # Enable Brotli compression
+  Content-Encoding: br
+
+/*.css
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: text/css; charset=utf-8
+  # Enable Brotli compression
+  Content-Encoding: br
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+  # Preload critical resources via HTTP headers
+  Link: </assets/index.js>; rel=modulepreload; as=script; crossorigin
+  Link: </assets/index.css>; rel=preload; as=style; crossorigin
+  Link: </assets/react-core.js>; rel=modulepreload; as=script; crossorigin
