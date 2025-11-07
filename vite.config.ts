@@ -29,14 +29,12 @@ function removeUnusedCode() {
     name: 'remove-unused-code',
     enforce: 'post' as const,
     generateBundle(_options: unknown, bundle: Record<string, unknown>) {
-      // Remove source maps in production
-      if (process.env.NODE_ENV === 'production') {
-        Object.keys(bundle).forEach(key => {
-          if (key.endsWith('.map')) {
-            delete bundle[key];
-          }
-        });
-      }
+      // Remove source maps in production (Vite sets mode, not NODE_ENV)
+      Object.keys(bundle).forEach(key => {
+        if (key.endsWith('.map')) {
+          delete bundle[key];
+        }
+      });
     },
   };
 }

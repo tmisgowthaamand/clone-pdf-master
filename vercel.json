@@ -98,6 +98,12 @@
     }
   ],
   "env": {
+    "NODE_ENV": "production",
     "VITE_API_URL": "https://pdftools-backend.onrender.com"
+  },
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
   }
 }
