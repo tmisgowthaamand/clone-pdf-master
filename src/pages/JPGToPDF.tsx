@@ -10,6 +10,7 @@ import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { downloadBlob } from "@/utils/downloadHelper";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -89,19 +90,9 @@ const JPGToPDF = () => {
           const byteArray = new Uint8Array(byteNumbers);
           const blob = new Blob([byteArray], { type: 'application/pdf' });
           
-          // Create download link
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = pdf.filename;
-          document.body.appendChild(a);
-          
           // Delay between downloads to avoid browser blocking
           await new Promise(resolve => setTimeout(resolve, 100 * i));
-          a.click();
-          
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+          downloadBlob(blob, pdf.filename);
         }
 
         toast({
@@ -184,7 +175,7 @@ const JPGToPDF = () => {
                   <div className="space-y-6">
                     {/* Page Orientation */}
                     <div>
-                      <Label className="text-base font-semibold mb-3 block">Page orientation</Label>
+                      <div className="text-base font-semibold mb-3 block">Page orientation</div>
                       <RadioGroup value={orientation} onValueChange={(value: any) => setOrientation(value)}>
                         <div className="grid grid-cols-2 gap-3">
                           <div 
@@ -221,7 +212,7 @@ const JPGToPDF = () => {
 
                     {/* Page Size */}
                     <div>
-                      <Label className="text-base font-semibold mb-3 block">Page size</Label>
+                      <div className="text-base font-semibold mb-3 block">Page size</div>
                       <Select value={pageSize} onValueChange={setPageSize}>
                         <SelectTrigger className="w-full h-11">
                           <SelectValue placeholder="Select page size" />
@@ -237,7 +228,7 @@ const JPGToPDF = () => {
 
                     {/* Margin */}
                     <div>
-                      <Label className="text-base font-semibold mb-3 block">Margin</Label>
+                      <div className="text-base font-semibold mb-3 block">Margin</div>
                       <RadioGroup value={margin} onValueChange={(value: any) => setMargin(value)}>
                         <div className="grid grid-cols-3 gap-3">
                           <div 

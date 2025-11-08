@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { downloadBlob } from "@/utils/downloadHelper";
 
 const WatermarkPDF = () => {
   const { toast } = useToast();
@@ -148,14 +149,8 @@ const WatermarkPDF = () => {
 
       // Download the watermarked PDF
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name.replace(/\.pdf$/i, '_watermarked.pdf');
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const filename = file.name.replace(/\.pdf$/i, '_watermarked.pdf');
+      downloadBlob(blob, filename);
 
       toast({
         title: "✅ Success!",
@@ -436,7 +431,7 @@ const WatermarkPDF = () => {
                       <div>
                         <Label htmlFor="font-family">Font Family</Label>
                         <Select value={fontFamily} onValueChange={setFontFamily}>
-                          <SelectTrigger className="mt-2">
+                          <SelectTrigger id="font-family" className="mt-2">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -509,6 +504,8 @@ const WatermarkPDF = () => {
                             className="w-20 h-10"
                           />
                           <Input
+                            id="color-text"
+                            name="color-text"
                             value={color}
                             onChange={(e) => setColor(e.target.value)}
                             placeholder="#000000"
@@ -542,7 +539,7 @@ const WatermarkPDF = () => {
                     <div>
                       <Label htmlFor="position">Position</Label>
                       <Select value={position} onValueChange={setPosition}>
-                        <SelectTrigger className="mt-2">
+                        <SelectTrigger id="position" className="mt-2">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
@@ -565,7 +562,7 @@ const WatermarkPDF = () => {
                     <div>
                       <Label htmlFor="layer">Layer</Label>
                       <Select value={layer} onValueChange={(value: 'over' | 'below') => setLayer(value)}>
-                        <SelectTrigger className="mt-2">
+                        <SelectTrigger id="layer" className="mt-2">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>

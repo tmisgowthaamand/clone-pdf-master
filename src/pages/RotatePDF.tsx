@@ -9,6 +9,7 @@ import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { API_ENDPOINTS } from '@/config/api';
+import { downloadBlob } from "@/utils/downloadHelper";
 
 const RotatePDF = () => {
   const { toast } = useToast();
@@ -84,14 +85,8 @@ const RotatePDF = () => {
       }
 
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name.replace(/\.pdf$/i, '_rotated.pdf');
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const filename = file.name.replace(/\.pdf$/i, '_rotated.pdf');
+      downloadBlob(blob, filename);
 
       toast({
         title: "✅ Success",

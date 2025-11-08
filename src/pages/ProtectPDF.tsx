@@ -11,6 +11,7 @@ import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { downloadBlob } from "@/utils/downloadHelper";
 
 const ProtectPDF = () => {
   const { toast } = useToast();
@@ -21,6 +22,7 @@ const ProtectPDF = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [protectedPdfUrl, setProtectedPdfUrl] = useState<string | null>(null);
+  const [protectedPdfBlob, setProtectedPdfBlob] = useState<Blob | null>(null);
   const [protectedFileName, setProtectedFileName] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [showPreview, setShowPreview] = useState(false);
@@ -111,6 +113,7 @@ const ProtectPDF = () => {
       const fileName = `${originalName}_protected_${timestamp}.pdf`;
       
       setProtectedPdfUrl(url);
+      setProtectedPdfBlob(blob);
       setProtectedFileName(fileName);
       setShowPreview(true);
       
@@ -133,13 +136,8 @@ const ProtectPDF = () => {
   };
 
   const handleDownload = () => {
-    if (protectedPdfUrl) {
-      const link = document.createElement('a');
-      link.href = protectedPdfUrl;
-      link.download = protectedFileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    if (protectedPdfBlob) {
+      downloadBlob(protectedPdfBlob, protectedFileName);
       
       toast({
         title: "Downloaded",
@@ -149,10 +147,11 @@ const ProtectPDF = () => {
   };
 
   const handleReset = () => {
-    setFiles([]);
+    setProtectedPdfUrl(null);
+    setProtectedPdfBlob(null);
+    setProtectedFileName("");
     setPassword("");
     setConfirmPassword("");
-    setProtectedPdfUrl(null);
     setErrorMessage("");
     setShowPreview(false);
     setPreviewScale(1.0);

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { downloadBlob } from "@/utils/downloadHelper";
 
 const HTMLToPDF = () => {
   const { toast } = useToast();
@@ -114,14 +115,8 @@ const HTMLToPDF = () => {
       }
 
       const blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = url ? `${new URL(url).hostname}.pdf` : 'converted.pdf';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(downloadUrl);
+      const filename = url ? `${new URL(url).hostname}.pdf` : 'converted.pdf';
+      downloadBlob(blob, filename);
 
       toast({
         title: "✅ Success",
@@ -300,7 +295,7 @@ const HTMLToPDF = () => {
                 <div>
                   <Label htmlFor="pageSize">Page Size</Label>
                   <Select value={pageSize} onValueChange={setPageSize}>
-                    <SelectTrigger className="mt-2">
+                    <SelectTrigger id="pageSize" className="mt-2">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -316,7 +311,7 @@ const HTMLToPDF = () => {
                 <div>
                   <Label htmlFor="orientation">Orientation</Label>
                   <Select value={orientation} onValueChange={(v: 'portrait' | 'landscape') => setOrientation(v)}>
-                    <SelectTrigger className="mt-2">
+                    <SelectTrigger id="orientation" className="mt-2">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

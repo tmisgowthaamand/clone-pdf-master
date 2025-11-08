@@ -41,8 +41,10 @@ export const ResponsiveFileUpload = ({
         </h2>
 
         {/* Upload Area */}
-        <label className="block cursor-pointer group">
+        <label htmlFor="responsive-file-upload" className="block cursor-pointer group">
           <input
+            id="responsive-file-upload"
+            name="responsive-file-upload"
             type="file"
             accept={acceptedFormats}
             onChange={handleFileChange}

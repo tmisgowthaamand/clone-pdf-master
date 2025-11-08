@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { uploadWithRetry } from '@/utils/apiRetry';
+import { downloadBlob } from '@/utils/downloadHelper';
 
 interface ConversionOptions {
   endpoint: string;
@@ -72,18 +73,12 @@ export function useConversion() {
       const blob = await response.blob();
       console.log('Blob received:', blob.size, 'bytes');
       
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      
       // Generate output filename
       const baseName = file.name.substring(0, file.name.lastIndexOf('.'));
-      a.download = `${baseName}.${options.outputExtension}`;
+      const fileName = `${baseName}.${options.outputExtension}`;
       
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Use download helper to prevent partition issues
+      downloadBlob(blob, fileName);
 
       toast({
         title: "✅ Success!",

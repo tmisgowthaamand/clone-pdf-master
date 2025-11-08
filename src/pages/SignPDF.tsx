@@ -624,6 +624,8 @@ const SignPDF = () => {
                   
                   <TabsContent value="upload">
                     <input
+                      id="signature-upload"
+                      name="signature-upload"
                       ref={signatureInputRef}
                       type="file"
                       accept="image/*"
@@ -704,6 +706,8 @@ const SignPDF = () => {
                   <span>Company Stamp</span>
                 </h2>
                 <input
+                  id="stamp-upload"
+                  name="stamp-upload"
                   ref={stampInputRef}
                   type="file"
                   accept="image/*"
