@@ -644,7 +644,7 @@ const SignPDF = () => {
 
                   <TabsContent value="draw" className="space-y-4">
                     <div>
-                      <Label>Draw Your Signature</Label>
+                      <div className="text-sm font-medium mb-2">Draw Your Signature</div>
                       <canvas
                         ref={canvasRef}
                         width={400}

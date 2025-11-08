@@ -434,7 +434,7 @@ const WatermarkPDF = () => {
                           <SelectTrigger id="font-family" className="mt-2">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
                             <SelectItem value="Arial">Arial</SelectItem>
                             <SelectItem value="Times New Roman">Times New Roman</SelectItem>
                             <SelectItem value="Courier New">Courier New</SelectItem>
@@ -451,6 +451,7 @@ const WatermarkPDF = () => {
                         <Label htmlFor="font-size">Font Size: {fontSize[0]}px</Label>
                         <Slider
                           id="font-size"
+                          name="font-size"
                           value={fontSize}
                           onValueChange={setFontSize}
                           min={10}
@@ -461,7 +462,7 @@ const WatermarkPDF = () => {
                       </div>
                       
                       <div>
-                        <Label>Text Formatting</Label>
+                        <div className="text-sm font-medium mb-2">Text Formatting</div>
                         <div className="flex gap-2 mt-2">
                           <Button
                             type="button"
@@ -542,7 +543,7 @@ const WatermarkPDF = () => {
                         <SelectTrigger id="position" className="mt-2">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
+                        <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="max-h-[300px]">
                           <SelectItem value="diagonal">Full Page Diagonal</SelectItem>
                           <SelectItem value="mosaic">Mosaic (Grid Pattern)</SelectItem>
                           <SelectItem value="tile">Tile (Repeat)</SelectItem>
@@ -576,6 +577,7 @@ const WatermarkPDF = () => {
                       <Label htmlFor="opacity">Opacity: {opacity[0]}%</Label>
                       <Slider
                         id="opacity"
+                        name="opacity"
                         value={opacity}
                         onValueChange={setOpacity}
                         min={0}
@@ -589,6 +591,7 @@ const WatermarkPDF = () => {
                       <Label htmlFor="rotation">Rotation: {rotation[0]}°</Label>
                       <Slider
                         id="rotation"
+                        name="rotation"
                         value={rotation}
                         onValueChange={setRotation}
                         min={-180}

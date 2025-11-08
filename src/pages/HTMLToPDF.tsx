@@ -327,8 +327,10 @@ const HTMLToPDF = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Top: {marginTop[0]}mm</Label>
+                    <Label htmlFor="margin-top">Top: {marginTop[0]}mm</Label>
                     <Slider
+                      id="margin-top"
+                      name="margin-top"
                       value={marginTop}
                       onValueChange={setMarginTop}
                       min={0}
@@ -339,8 +341,10 @@ const HTMLToPDF = () => {
                   </div>
                   
                   <div>
-                    <Label>Bottom: {marginBottom[0]}mm</Label>
+                    <Label htmlFor="margin-bottom">Bottom: {marginBottom[0]}mm</Label>
                     <Slider
+                      id="margin-bottom"
+                      name="margin-bottom"
                       value={marginBottom}
                       onValueChange={setMarginBottom}
                       min={0}
@@ -351,8 +355,10 @@ const HTMLToPDF = () => {
                   </div>
                   
                   <div>
-                    <Label>Left: {marginLeft[0]}mm</Label>
+                    <Label htmlFor="margin-left">Left: {marginLeft[0]}mm</Label>
                     <Slider
+                      id="margin-left"
+                      name="margin-left"
                       value={marginLeft}
                       onValueChange={setMarginLeft}
                       min={0}
@@ -363,8 +369,10 @@ const HTMLToPDF = () => {
                   </div>
                   
                   <div>
-                    <Label>Right: {marginRight[0]}mm</Label>
+                    <Label htmlFor="margin-right">Right: {marginRight[0]}mm</Label>
                     <Slider
+                      id="margin-right"
+                      name="margin-right"
                       value={marginRight}
                       onValueChange={setMarginRight}
                       min={0}

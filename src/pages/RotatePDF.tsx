@@ -7,7 +7,6 @@ import { ArrowLeft, RotateCw, RotateCcw, Download, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { API_ENDPOINTS } from '@/config/api';
 import { downloadBlob } from "@/utils/downloadHelper";
 
@@ -194,7 +193,7 @@ const RotatePDF = () => {
                   <h3 className="text-lg font-semibold">Rotation Settings</h3>
                   
                   <div>
-                    <Label>Rotation Direction</Label>
+                    <div className="text-sm font-medium mb-2">Rotation Direction</div>
                     <div className="grid grid-cols-2 gap-4 mt-2">
                       <Button
                         type="button"
@@ -218,7 +217,7 @@ const RotatePDF = () => {
                   </div>
                   
                   <div>
-                    <Label>Rotation Angle</Label>
+                    <div className="text-sm font-medium mb-2">Rotation Angle</div>
                     <div className="grid grid-cols-4 gap-3 mt-2">
                       <Button
                         type="button"
