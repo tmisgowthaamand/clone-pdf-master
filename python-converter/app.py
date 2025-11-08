@@ -1762,21 +1762,16 @@ def excel_to_pdf():
                 raise RuntimeError("CSV to Excel conversion failed")
             print(f"[OK] CSV converted to Excel: {os.path.basename(excel_path)}\n")
         
-        # Try perfect conversion first (preserves alignment and formatting)
+        # Use fixed LibreOffice converter (most reliable)
         pdf_path = None
-        print("Step 2: Converting to PDF with perfect formatting...")
+        print("Step 2: Converting to PDF with LibreOffice...")
         
         try:
-            from excel_to_pdf_perfect import convert_excel_to_pdf
-            pdf_path = convert_excel_to_pdf(excel_path, tmpdir)
+            from excel_to_pdf_fixed import convert_excel_to_pdf_fixed
+            pdf_path = convert_excel_to_pdf_fixed(excel_path, tmpdir)
         except Exception as e:
-            print(f"Perfect conversion failed: {str(e)}")
+            print(f"Fixed conversion failed: {str(e)}")
             pdf_path = None
-        
-        # Fallback to COM if available
-        if not pdf_path or not os.path.exists(pdf_path):
-            print("Trying Microsoft Excel COM...")
-            pdf_path = convert_excel_to_pdf_professional_api(excel_path, tmpdir)
         
         # Fallback to LibreOffice if COM fails
         if not pdf_path or not os.path.exists(pdf_path):
