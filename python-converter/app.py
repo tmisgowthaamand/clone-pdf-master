@@ -8,6 +8,7 @@ Professional-grade conversion using LibreOffice
 import sys
 import io
 import os
+import gc  # Garbage collector for memory management
 
 # Fix Windows encoding issues - force UTF-8
 if sys.platform == 'win32':
@@ -36,6 +37,12 @@ from reportlab.lib.utils import ImageReader
 from reportlab.lib.colors import HexColor
 from datetime import datetime
 import requests
+
+# Memory optimization helper
+def cleanup_memory():
+    """Force garbage collection to free memory"""
+    gc.collect()
+    gc.collect()  # Call twice for better cleanup
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # For session management
@@ -557,10 +564,10 @@ def convert_pdf_to_docx_endpoint():
 
 @app.route('/api/convert/pdf-to-excel', methods=['POST'])
 def pdf_to_excel():
-    """Convert PDF to Excel - Optimized for speed"""
-    print("\n" + "="*60)
-    print("PDF TO EXCEL CONVERSION REQUEST RECEIVED")
-    print("="*60)
+    """Convert PDF to Excel - Fast & Accurate Mode"""
+    # Use the new fast converter
+    from pdf_to_excel_fast import pdf_to_excel_fast
+    return pdf_to_excel_fast()
     tmpdir = None
     try:
         if 'file' not in request.files:
