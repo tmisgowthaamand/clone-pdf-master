@@ -1780,3 +1780,19 @@ button, a, input, select, textarea {
   background-color: hsl(var(--accent)) !important;
   color: hsl(var(--accent-foreground)) !important;
 }
+
+/* Prevent scroll to top when Select opens */
+[data-radix-select-trigger] {
+  scroll-margin: 0 !important;
+}
+
+/* Prevent body scroll when dropdown opens */
+body:has([data-radix-select-content][data-state="open"]) {
+  overflow: auto !important;
+  position: static !important;
+}
+
+/* Keep scroll position when Select opens */
+[data-radix-portal] {
+  position: fixed !important;
+}
