@@ -20,9 +20,9 @@ from datetime import datetime
 
 def convert_excel_to_pdf_table(excel_path, output_path, account_info=None):
     """
-    Convert Excel to PDF with Bank of India statement formatting
-    This method works without LibreOffice and produces professional output
-    Matches bank statement quality with proper layout
+    Convert Excel to PDF with professional bank statement formatting
+    Auto-detects bank format (Axis, BOI, etc.) and produces iLovePDF quality
+    Works without LibreOffice - pure Python solution for Render deployment
     
     account_info: dict with keys like 'customer_id', 'account_holder_name', 
                   'account_number', 'address', 'transaction_date_from', etc.
@@ -59,14 +59,24 @@ def convert_excel_to_pdf_table(excel_path, output_path, account_info=None):
         if has_images:
             print(f"✓ Found images/logos in Excel file")
         
-        # Create PDF
+        # Auto-detect if we need landscape (many columns)
+        num_cols = len(df.columns)
+        if num_cols > 6:
+            from reportlab.lib.pagesizes import landscape
+            page_size = landscape(A4)
+            print(f"✓ Using LANDSCAPE orientation for {num_cols} columns")
+        else:
+            page_size = A4
+            print(f"✓ Using PORTRAIT orientation for {num_cols} columns")
+        
+        # Create PDF with optimized margins
         doc = SimpleDocTemplate(
             output_path,
-            pagesize=A4,
-            rightMargin=15*mm,
-            leftMargin=15*mm,
-            topMargin=15*mm,
-            bottomMargin=15*mm
+            pagesize=page_size,
+            rightMargin=10*mm,
+            leftMargin=10*mm,
+            topMargin=10*mm,
+            bottomMargin=10*mm
         )
         
         # Container for PDF elements
@@ -163,8 +173,7 @@ def convert_excel_to_pdf_table(excel_path, output_path, account_info=None):
         print(f"Building PDF table with {len(table_data)} rows...")
         
         # Calculate column widths dynamically
-        num_cols = len(df.columns)
-        page_width = A4[0] - 30*mm  # Available width
+        page_width = page_size[0] - 20*mm  # Available width
         
         # Calculate width for each column based on content
         col_widths = []
@@ -189,30 +198,32 @@ def convert_excel_to_pdf_table(excel_path, output_path, account_info=None):
         
         # Build comprehensive table style matching Bank of India format
         table_style = TableStyle([
-            # Header row styling - clean professional look
+            # Header row styling - professional iLovePDF look
             ('BACKGROUND', (0, 0), (-1, 0), colors.white),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
             ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
             ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, 0), True),
             
-            # Data rows styling
+            # Data rows styling - optimized for readability
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
             ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 1), (-1, -1), True),
             
-            # Borders - professional grid
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('BOX', (0, 0), (-1, -1), 1.5, colors.black),
+            # Borders - clean professional grid like iLovePDF
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('BOX', (0, 0), (-1, -1), 1, colors.black),
             ('LINEBELOW', (0, 0), (-1, 0), 1.5, colors.black),  # Thicker line below header
             
-            # Padding
-            ('LEFTPADDING', (0, 0), (-1, -1), 8),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            # Padding - optimized for content density
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ])
         
         # Auto-detect numeric columns and right-align them

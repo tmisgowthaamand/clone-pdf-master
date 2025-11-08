@@ -1762,18 +1762,31 @@ def excel_to_pdf():
                 raise RuntimeError("CSV to Excel conversion failed")
             print(f"[OK] CSV converted to Excel: {os.path.basename(excel_path)}\n")
         
-        # Use LibreOffice directly - it preserves EXACT Excel layout including logos
+        # Use professional Python-based converter for iLovePDF quality
+        # This works on Render (Linux) without LibreOffice dependencies
         pdf_path = None
-        print("Step 2: Converting to PDF with LibreOffice (preserves exact layout)...")
+        print("Step 2: Converting to PDF with professional converter (iLovePDF quality)...")
         
-        # LibreOffice conversion - PRIMARY method
-        if True:  # Always try LibreOffice first
-            print(f"\n{'='*60}")
-            print(f"EXCEL TO PDF CONVERSION - LibreOffice (Fallback)")
-            print(f"Input: {excel_path}")
-            print(f"{'='*60}\n")
+        # Try professional table-based converter first (works everywhere)
+        try:
+            from excel_to_pdf_table import convert_to_pdf_table
             
-            # Detect LibreOffice executable based on platform
+            base_name = os.path.splitext(os.path.basename(excel_path))[0]
+            pdf_path = os.path.join(tmpdir, f"{base_name}.pdf")
+            
+            result = convert_to_pdf_table(excel_path, pdf_path)
+            
+            if result and os.path.exists(pdf_path):
+                print(f"[OK] Professional PDF created: {pdf_path}")
+                print(f"{'='*60}\n")
+            else:
+                raise RuntimeError("Professional converter failed")
+        
+        except Exception as prof_error:
+            print(f"Professional converter error: {prof_error}")
+            print("Falling back to LibreOffice...")
+            
+            # LibreOffice fallback (for Windows or if LibreOffice is available)
             if sys.platform == 'win32':
                 soffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
                 # Kill existing LibreOffice processes (Windows only)
@@ -1787,11 +1800,10 @@ def excel_to_pdf():
                 except:
                     pass
             else:
-                # Linux/Unix - use system LibreOffice
+                # Linux/Unix - use system LibreOffice if available
                 soffice_exe = shutil.which('soffice') or 'soffice'
             
-            # Convert with MAXIMUM quality settings - preserve EVERYTHING
-            # This ensures logos, images, formatting, and layout are preserved exactly
+            # Convert with LibreOffice
             cmd = [
                 soffice_exe,
                 '--headless',
@@ -1801,7 +1813,7 @@ def excel_to_pdf():
                 '--nolockcheck',
                 '--nologo',
                 '--norestore',
-                '--convert-to', 'pdf:calc_pdf_Export',  # Use default calc_pdf_Export for best compatibility
+                '--convert-to', 'pdf:calc_pdf_Export',
                 '--outdir', tmpdir,
                 excel_path
             ]
@@ -1811,15 +1823,14 @@ def excel_to_pdf():
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=60,  # Reduced from 120s for faster response
+                timeout=60,
                 encoding='utf-8',
-                errors='replace',
-                env={**os.environ, 'OMP_NUM_THREADS': '4'}  # Parallel processing
+                errors='replace'
             )
             
             if result.returncode != 0:
                 print(f"LibreOffice error: {result.stderr}")
-                raise RuntimeError(f"LibreOffice conversion failed: {result.stderr}")
+                raise RuntimeError(f"Both converters failed. Last error: {result.stderr}")
             
             # Find the output PDF
             base_name = os.path.splitext(os.path.basename(excel_path))[0]
@@ -1838,7 +1849,7 @@ def excel_to_pdf():
             if not pdf_path or not os.path.exists(pdf_path):
                 raise RuntimeError("PDF file was not created")
             
-            print(f"[OK] PDF file created: {pdf_path}")
+            print(f"[OK] LibreOffice PDF created: {pdf_path}")
             print(f"{'='*60}\n")
         
         # Send file
