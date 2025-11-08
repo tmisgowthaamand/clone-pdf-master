@@ -89,126 +89,60 @@ def convert_excel_to_pdf_table(excel_path, output_path, account_info=None):
                 'transaction_type': 'All'
             }
         
-        # ===== HEADER SECTION WITH LOGO AND BORDER =====
-        # Logo text (simulating Bank of India logo)
-        logo_text = Paragraph(
-            '<b><font size=11 color="white" backColor="#0066CC">  Bank of India  </font></b><br/>'
-            '<font size=7><i>Relationship beyond banking</i></font>',
-            ParagraphStyle(
-                'Logo',
-                fontSize=11,
-                alignment=TA_RIGHT,
-                spaceAfter=0
-            )
+        # ===== HEADER SECTION =====
+        # Bank name/logo placeholder
+        bank_name = Paragraph(
+            '<b><font size=14>BANK STATEMENT</font></b>',
+            ParagraphStyle('BankName', fontSize=14, alignment=TA_LEFT, textColor=colors.HexColor('#333333'))
         )
-        
-        # Title
-        title_text = Paragraph(
-            '<b><font size=16>Detailed Statement</font></b>',
-            ParagraphStyle('Title', fontSize=16, alignment=TA_CENTER, spaceAfter=0)
-        )
-        
-        # Header with logo and title in bordered box
-        header_data = [[
-            '',  # Empty left
-            title_text,
-            logo_text
-        ]]
-        
-        header_table = Table(header_data, colWidths=[60, 340, 135])
-        header_table.setStyle(TableStyle([
-            ('BOX', (0, 0), (-1, -1), 1.5, colors.black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 15),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
-        ]))
-        elements.append(header_table)
+        elements.append(bank_name)
         elements.append(Spacer(1, 3*mm))
         
-        # ===== DATE AND ACCOUNT DETAILS BOX =====
-        # Date at top right
-        date_para = Paragraph(
-            f'<b>Date: {datetime.now().strftime("%d/%m/%Y")}</b>',
-            ParagraphStyle('DateStyle', fontSize=10, alignment=TA_RIGHT)
+        # Statement title with date range
+        statement_title = Paragraph(
+            f'<b>STATEMENT BETWEEN {account_info.get("transaction_date_from", "01/01/2025")} '
+            f'AND {account_info.get("transaction_date_to", "31/12/2025")} '
+            f'FOR A/C: {account_info.get("account_number", "XXXXXXXXXXXX")}</b>',
+            ParagraphStyle('Title', fontSize=11, alignment=TA_CENTER, spaceAfter=0)
         )
-        elements.append(date_para)
-        elements.append(Spacer(1, 2*mm))
-        
-        # Account details in single bordered box matching exact layout
-        account_details_data = [
-            [
-                Paragraph(account_info.get('address', '').replace('\n', '<br/>'), 
-                         ParagraphStyle('AddressStyle', fontSize=9, leading=11)),
-                '',
-                ''
-            ],
-            [
-                Paragraph(f'<b>Customer ID:</b> {account_info.get("customer_id", "")}', styles['Normal']),
-                Paragraph(f'<b>Account holder address:</b>', styles['Normal']),
-                Paragraph('STREET THIRUVALLUVAR NAGAR,PALNGANATHAM 625003', 
-                         ParagraphStyle('AddrStyle', fontSize=9))
-            ],
-            [
-                Paragraph(f'<b>Account holder name:</b> {account_info.get("account_holder_name", "")}', styles['Normal']),
-                Paragraph(f'<b>Account number:</b> {account_info.get("account_number", "")}', styles['Normal']),
-                ''
-            ]
-        ]
-        
-        account_table = Table(account_details_data, colWidths=[180, 180, 175])
-        account_table.setStyle(TableStyle([
-            ('BOX', (0, 0), (-1, -1), 1, colors.black),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 8),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ]))
-        elements.append(account_table)
+        elements.append(statement_title)
         elements.append(Spacer(1, 5*mm))
         
-        # ===== FILTER SECTION (LEFT-ALIGNED) =====
-        filter_style = ParagraphStyle('FilterStyle', fontSize=9, leading=12, alignment=TA_LEFT)
-        
-        # Transaction Date
-        trans_date = Paragraph(
-            f'<b>Transaction<br/>Date</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-            f'<b>from:</b> {account_info.get("transaction_date_from", "02-03-2025")}'
-            f'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-            f'<b>to:</b> {account_info.get("transaction_date_to", "02-09-2025")}',
-            filter_style
+        # ===== ACCOUNT DETAILS SECTION =====
+        # Left column - Address details
+        left_col = Paragraph(
+            f'<b>( {account_info.get("customer_id", "275")} )</b><br/>'
+            f'<b>{account_info.get("account_holder_name", "MS. SS STONE")}</b><br/>'
+            f'{account_info.get("address", "D NO 1 NMC COMPLEX<br/>MAIN ROAD<br/><br/>CHITTOOR, ANDHRA PRADESH<br/>INDIA").replace(chr(10), "<br/>")}<br/>'
+            f'<b>PIN :</b> {account_info.get("pin", "517112")}',
+            ParagraphStyle('LeftCol', fontSize=9, leading=12)
         )
-        elements.append(trans_date)
         
-        # Amount
-        amount = Paragraph(
-            f'<b>Amount</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-            f'<b>from:</b> {account_info.get("amount_from", "-")}'
-            f'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-            f'<b>to:</b> {account_info.get("amount_to", "-")}',
-            filter_style
+        # Right column - Account info
+        right_col = Paragraph(
+            f'<b>SCHEME CODE</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {account_info.get("scheme_code", "CURRENT ACCOUNT-NORMAL")}<br/>'
+            f'<b>CUSTOMER ID</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {account_info.get("customer_id", "XXXXX9406")}<br/>'
+            f'<b>CURRENCY CODE</b>&nbsp;&nbsp;&nbsp;: {account_info.get("currency", "INR")}<br/>'
+            f'<b>LIEN AMOUNT</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {account_info.get("lien_amount", "0.00")}<br/>'
+            f'<b>NOMINATION DETAILS</b>&nbsp;: {account_info.get("nomination", "NOMINATION NOT REGISTERED")}<br/>'
+            f'<b>KYC Status</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {account_info.get("kyc_status", "Updated")}<br/>'
+            f'<b>MICR/IFSC Code</b>&nbsp;&nbsp;&nbsp;&nbsp;: {account_info.get("ifsc", "517211102 / UTIB0000275")}<br/><br/>'
+            f'<b>CKYC NO</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {account_info.get("ckyc", "NA")}',
+            ParagraphStyle('RightCol', fontSize=9, leading=12)
         )
-        elements.append(amount)
         
-        # Cheque
-        cheque = Paragraph(
-            f'<b>Chequ</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-            f'<b>from:</b> {account_info.get("cheque_from", "-")}'
-            f'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-            f'<b>to:</b> {account_info.get("cheque_to", "-")}',
-            filter_style
-        )
-        elements.append(cheque)
+        # Create two-column layout
+        details_data = [[left_col, right_col]]
+        details_table = Table(details_data, colWidths=[250, 285])
+        details_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        elements.append(details_table)
+        elements.append(Spacer(1, 8*mm))
         
-        # Transaction type
-        trans_type = Paragraph(
-            f'<b>Transaction type: {account_info.get("transaction_type", "All")}</b>',
-            filter_style
-        )
-        elements.append(trans_type)
-        elements.append(Spacer(1, 4*mm))
+        # No filter section needed for this format - go straight to table
         
         # ===== TRANSACTION TABLE =====
         # Prepare table data
