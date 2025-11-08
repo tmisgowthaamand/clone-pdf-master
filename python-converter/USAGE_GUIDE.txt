@@ -1,0 +1,95 @@
+================================================================================
+BANK STATEMENT PDF GENERATOR - USAGE GUIDE
+================================================================================
+
+OVERVIEW:
+---------
+The excel_to_pdf_table.py module now generates professional Bank of India 
+style PDF statements from Excel/CSV files.
+
+FEATURES:
+---------
+✓ Detailed Statement header with date
+✓ Account details box (Customer ID, Account Holder Name, Account Number, Address)
+✓ Transaction filters (Date range, Amount range, Cheque range, Transaction type)
+✓ Professional transaction table with proper formatting
+✓ Automatic column width adjustment
+✓ Right-aligned numeric columns (Debit, Credit, Balance)
+
+QUICK START:
+------------
+1. Run the example:
+   py generate_bank_statement.py
+
+2. Check the generated PDF:
+   Bank_Statement_Professional.pdf
+
+FILES:
+------
+- excel_to_pdf_table.py       : Main conversion module
+- sample_statement.csv         : Sample transaction data
+- generate_bank_statement.py   : Example script with Bank of India format
+- example_usage.py             : Shows both default and custom usage
+
+USAGE IN YOUR CODE:
+-------------------
+from excel_to_pdf_table import convert_to_pdf_table
+
+# Define account information
+account_info = {
+    'customer_id': '192136847',
+    'account_holder_name': 'HARINI AND THARSHINI TRADERS',
+    'account_number': '826820110000461',
+    'address': 'W/O PRABAKARAN,7A 6TH CROSS\nSTREET THIRUVALLUVAR\nNAGAR,PALNGANATHAM 625003',
+    'transaction_date_from': '02-03-2025',
+    'transaction_date_to': '02-09-2025',
+    'amount_from': '-',
+    'amount_to': '-',
+    'cheque_from': '-',
+    'cheque_to': '-',
+    'transaction_type': 'All'
+}
+
+# Convert Excel/CSV to PDF
+convert_to_pdf_table('input.csv', 'output.pdf', account_info=account_info)
+
+CSV/EXCEL FORMAT:
+-----------------
+Your input file should have columns like:
+Sr No, Date, Remarks, Debit, Credit, Balance
+
+Example:
+Sr No,Date,Remarks,Debit,Credit,Balance
+1,02-03-2025,UPI/100816391148/CR/SIVASUIKVBL/srksiva92/Mercha,,300.00,₹ 81338.54
+2,03-03-2025,CWDR/453802/ZMD9114,9000.00,,₹ 72338.54
+
+GENERATED PDF INCLUDES:
+-----------------------
+1. Header Section:
+   - "Detailed Statement" title (centered)
+   - Current date (right-aligned)
+
+2. Account Details Box:
+   - Customer ID and Account holder address
+   - Account holder name
+   - Account number
+
+3. Filter Section:
+   - Transaction Date (from/to)
+   - Amount (from/to)
+   - Cheque (from/to)
+   - Transaction type
+
+4. Transaction Table:
+   - All columns from your Excel/CSV
+   - Professional formatting
+   - Proper borders and alignment
+
+NOTES:
+------
+- If account_info is not provided, default values are used
+- Works with both .xlsx and .csv files
+- No LibreOffice required
+- Runs on Render.com and other cloud platforms
+
+================================================================================

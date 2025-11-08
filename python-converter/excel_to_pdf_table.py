@@ -1,27 +1,31 @@
 """
-Excel to PDF Converter - Table-Based Approach
-Creates proper PDF tables from Excel data
+Excel to PDF Converter - Bank Statement Style
+Creates professional bank statement PDFs from Excel data
 Works reliably on Render.com without LibreOffice
-Uses reportlab to create professional PDFs with proper table formatting
+Uses reportlab to create professional PDFs matching Bank of India format
 """
 
 import os
 import pandas as pd
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.lib.units import inch, mm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from datetime import datetime
 
 
-def convert_excel_to_pdf_table(excel_path, output_path):
+def convert_excel_to_pdf_table(excel_path, output_path, account_info=None):
     """
-    Convert Excel to PDF with proper table formatting
+    Convert Excel to PDF with Bank of India statement formatting
     This method works without LibreOffice and produces professional output
     Matches bank statement quality with proper layout
+    
+    account_info: dict with keys like 'customer_id', 'account_holder_name', 
+                  'account_number', 'address', 'transaction_date_from', etc.
     """
     print(f"\n{'='*60}")
     print(f"EXCEL TO PDF - Bank Statement Quality")
@@ -59,16 +63,128 @@ def convert_excel_to_pdf_table(excel_path, output_path):
         doc = SimpleDocTemplate(
             output_path,
             pagesize=A4,
-            rightMargin=20*mm,
-            leftMargin=20*mm,
-            topMargin=20*mm,
-            bottomMargin=20*mm
+            rightMargin=15*mm,
+            leftMargin=15*mm,
+            topMargin=15*mm,
+            bottomMargin=15*mm
         )
         
         # Container for PDF elements
         elements = []
         styles = getSampleStyleSheet()
         
+        # Default account info if not provided
+        if account_info is None:
+            account_info = {
+                'customer_id': '192136847',
+                'account_holder_name': 'HARINI AND THARSHINI TRADERS',
+                'account_number': '826820110000461',
+                'address': 'W/O PRABAKARAN,7A 6TH CROSS\nSTREET THIRUVALLUVAR\nNAGAR,PALNGANATHAM 625003',
+                'transaction_date_from': '02-03-2025',
+                'transaction_date_to': '02-09-2025',
+                'amount_from': '-',
+                'amount_to': '-',
+                'cheque_from': '-',
+                'cheque_to': '-',
+                'transaction_type': 'All'
+            }
+        
+        # ===== HEADER SECTION =====
+        # Title and Date Row
+        header_data = [[
+            Paragraph('<b>Detailed Statement</b>', ParagraphStyle(
+                'Title',
+                parent=styles['Heading1'],
+                fontSize=18,
+                alignment=TA_CENTER,
+                spaceAfter=0
+            )),
+            Paragraph(f'<b>Date: {datetime.now().strftime("%d/%m/%Y")}</b>', ParagraphStyle(
+                'Date',
+                fontSize=10,
+                alignment=TA_RIGHT,
+                spaceAfter=0
+            ))
+        ]]
+        
+        header_table = Table(header_data, colWidths=[400, 135])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        elements.append(header_table)
+        elements.append(Spacer(1, 10*mm))
+        
+        # ===== ACCOUNT DETAILS BOX =====
+        account_details_data = [
+            [
+                Paragraph(f'<b>Customer ID:</b>', styles['Normal']),
+                Paragraph(account_info.get('customer_id', ''), styles['Normal']),
+                Paragraph(f'<b>Account holder address:</b>', styles['Normal']),
+                Paragraph(account_info.get('address', '').replace('\n', '<br/>'), styles['Normal'])
+            ],
+            [
+                Paragraph(f'<b>Account holder name:</b>', styles['Normal']),
+                Paragraph(account_info.get('account_holder_name', ''), styles['Normal']),
+                '',
+                ''
+            ],
+            [
+                Paragraph(f'<b>Account number:</b>', styles['Normal']),
+                Paragraph(account_info.get('account_number', ''), styles['Normal']),
+                '',
+                ''
+            ]
+        ]
+        
+        account_table = Table(account_details_data, colWidths=[100, 150, 130, 155])
+        account_table.setStyle(TableStyle([
+            ('BOX', (0, 0), (-1, -1), 1, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(account_table)
+        elements.append(Spacer(1, 8*mm))
+        
+        # ===== FILTER SECTION =====
+        filter_data = [
+            [
+                Paragraph('<b>Transaction Date</b>', styles['Normal']),
+                Paragraph(f"<b>from:</b> {account_info.get('transaction_date_from', '-')}", styles['Normal']),
+                Paragraph(f"<b>to:</b> {account_info.get('transaction_date_to', '-')}", styles['Normal'])
+            ],
+            [
+                Paragraph('<b>Amount</b>', styles['Normal']),
+                Paragraph(f"<b>from:</b> {account_info.get('amount_from', '-')}", styles['Normal']),
+                Paragraph(f"<b>to:</b> {account_info.get('amount_to', '-')}", styles['Normal'])
+            ],
+            [
+                Paragraph('<b>Cheque</b>', styles['Normal']),
+                Paragraph(f"<b>from:</b> {account_info.get('cheque_from', '-')}", styles['Normal']),
+                Paragraph(f"<b>to:</b> {account_info.get('cheque_to', '-')}", styles['Normal'])
+            ],
+            [
+                Paragraph(f"<b>Transaction type: {account_info.get('transaction_type', 'All')}</b>", styles['Normal']),
+                '',
+                ''
+            ]
+        ]
+        
+        filter_table = Table(filter_data, colWidths=[120, 200, 215])
+        filter_table.setStyle(TableStyle([
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ]))
+        elements.append(filter_table)
+        elements.append(Spacer(1, 5*mm))
+        
+        # ===== TRANSACTION TABLE =====
         # Prepare table data
         # Add header row
         table_data = [df.columns.tolist()]
@@ -88,7 +204,7 @@ def convert_excel_to_pdf_table(excel_path, output_path):
         
         # Calculate column widths dynamically
         num_cols = len(df.columns)
-        page_width = A4[0] - 40*mm  # Available width
+        page_width = A4[0] - 30*mm  # Available width
         
         # Calculate width for each column based on content
         col_widths = []
@@ -114,8 +230,8 @@ def convert_excel_to_pdf_table(excel_path, output_path):
         # Build comprehensive table style
         table_style = TableStyle([
             # Header row styling
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#366092')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.white),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
             ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
@@ -136,9 +252,6 @@ def convert_excel_to_pdf_table(excel_path, output_path):
             ('RIGHTPADDING', (0, 0), (-1, -1), 6),
             ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            
-            # Alternating row colors for better readability
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
         ])
         
         # Auto-detect numeric columns and right-align them
@@ -179,7 +292,7 @@ def convert_excel_to_pdf_table(excel_path, output_path):
         return None
 
 
-def convert_csv_to_pdf_table(csv_path, output_path):
+def convert_csv_to_pdf_table(csv_path, output_path, account_info=None):
     """
     Convert CSV to PDF with proper table formatting
     """
@@ -205,7 +318,7 @@ def convert_csv_to_pdf_table(csv_path, output_path):
         df.to_excel(temp_excel.name, index=False, engine='openpyxl')
         
         # Convert Excel to PDF
-        result = convert_excel_to_pdf_table(temp_excel.name, output_path)
+        result = convert_excel_to_pdf_table(temp_excel.name, output_path, account_info=account_info)
         
         # Cleanup
         try:
@@ -223,14 +336,19 @@ def convert_csv_to_pdf_table(csv_path, output_path):
 
 
 # Main conversion function
-def convert_to_pdf_table(input_path, output_path):
+def convert_to_pdf_table(input_path, output_path, account_info=None):
     """
     Main conversion function - handles both Excel and CSV
+    
+    account_info: Optional dict with account details for bank statement format
+                  Keys: customer_id, account_holder_name, account_number, address,
+                        transaction_date_from, transaction_date_to, amount_from, 
+                        amount_to, cheque_from, cheque_to, transaction_type
     """
     if input_path.lower().endswith('.csv'):
-        return convert_csv_to_pdf_table(input_path, output_path)
+        return convert_csv_to_pdf_table(input_path, output_path, account_info=account_info)
     else:
-        return convert_excel_to_pdf_table(input_path, output_path)
+        return convert_excel_to_pdf_table(input_path, output_path, account_info=account_info)
 
 
 # Test function
