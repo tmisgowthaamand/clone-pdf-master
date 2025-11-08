@@ -1762,15 +1762,19 @@ def excel_to_pdf():
                 raise RuntimeError("CSV to Excel conversion failed")
             print(f"[OK] CSV converted to Excel: {os.path.basename(excel_path)}\n")
         
-        # Use fixed LibreOffice converter (most reliable)
+        # Use table-based converter (works without LibreOffice)
         pdf_path = None
-        print("Step 2: Converting to PDF with LibreOffice...")
+        print("Step 2: Converting to PDF with table-based method...")
         
         try:
-            from excel_to_pdf_fixed import convert_excel_to_pdf_fixed
-            pdf_path = convert_excel_to_pdf_fixed(excel_path, tmpdir)
+            from excel_to_pdf_table import convert_excel_to_pdf_table
+            base_name = os.path.splitext(os.path.basename(excel_path))[0]
+            pdf_output = os.path.join(tmpdir, f"{base_name}.pdf")
+            pdf_path = convert_excel_to_pdf_table(excel_path, pdf_output)
         except Exception as e:
-            print(f"Fixed conversion failed: {str(e)}")
+            print(f"Table conversion failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
             pdf_path = None
         
         # Fallback to LibreOffice if COM fails
