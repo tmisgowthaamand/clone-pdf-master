@@ -1748,3 +1748,35 @@ button, a, input, select, textarea {
 .animate-bounce-continuous {
   animation: bounce-continuous 2s ease-in-out infinite;
 }
+
+/* ========================================
+   SELECT DROPDOWN FIX - Ensure clickable
+   ======================================== */
+
+/* Ensure Select dropdown content is above everything */
+[data-radix-popper-content-wrapper] {
+  z-index: 100 !important;
+}
+
+/* Ensure Select items are clickable */
+[role="option"] {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure Select content has proper stacking */
+[data-radix-select-content] {
+  z-index: 100 !important;
+  pointer-events: auto !important;
+}
+
+/* Prevent any overlay from blocking clicks */
+[data-radix-select-viewport] {
+  pointer-events: auto !important;
+}
+
+/* Ensure hover states work */
+[role="option"]:hover {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+}
