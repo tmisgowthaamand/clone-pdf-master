@@ -17,7 +17,7 @@ git add src/index.css
 
 echo.
 echo Step 2: Committing changes...
-git commit -m "Fix Excel to PDF conversion - table-based approach for bank statement quality"
+git commit -m "Fix Excel to PDF - use LibreOffice to preserve exact layout with logos"
 
 echo.
 echo Step 3: Pushing to repository...

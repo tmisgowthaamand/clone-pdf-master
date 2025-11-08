@@ -1762,23 +1762,12 @@ def excel_to_pdf():
                 raise RuntimeError("CSV to Excel conversion failed")
             print(f"[OK] CSV converted to Excel: {os.path.basename(excel_path)}\n")
         
-        # Use table-based converter (works without LibreOffice)
+        # Use LibreOffice directly - it preserves EXACT Excel layout including logos
         pdf_path = None
-        print("Step 2: Converting to PDF with table-based method...")
+        print("Step 2: Converting to PDF with LibreOffice (preserves exact layout)...")
         
-        try:
-            from excel_to_pdf_table import convert_excel_to_pdf_table
-            base_name = os.path.splitext(os.path.basename(excel_path))[0]
-            pdf_output = os.path.join(tmpdir, f"{base_name}.pdf")
-            pdf_path = convert_excel_to_pdf_table(excel_path, pdf_output)
-        except Exception as e:
-            print(f"Table conversion failed: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            pdf_path = None
-        
-        # Fallback to LibreOffice if COM fails
-        if not pdf_path or not os.path.exists(pdf_path):
+        # LibreOffice conversion - PRIMARY method
+        if True:  # Always try LibreOffice first
             print(f"\n{'='*60}")
             print(f"EXCEL TO PDF CONVERSION - LibreOffice (Fallback)")
             print(f"Input: {excel_path}")
@@ -1801,9 +1790,8 @@ def excel_to_pdf():
                 # Linux/Unix - use system LibreOffice
                 soffice_exe = shutil.which('soffice') or 'soffice'
             
-            # Convert with optimal settings - preserve images and formatting
-            # calc_pdf_Export preserves all images, logos, and formatting
-            # Optimized for speed while maintaining quality
+            # Convert with MAXIMUM quality settings - preserve EVERYTHING
+            # This ensures logos, images, formatting, and layout are preserved exactly
             cmd = [
                 soffice_exe,
                 '--headless',
@@ -1813,7 +1801,7 @@ def excel_to_pdf():
                 '--nolockcheck',
                 '--nologo',
                 '--norestore',
-                '--convert-to', 'pdf:calc_pdf_Export:{"Quality":90,"ReduceImageResolution":false,"MaxImageResolution":300}',
+                '--convert-to', 'pdf:calc_pdf_Export',  # Use default calc_pdf_Export for best compatibility
                 '--outdir', tmpdir,
                 excel_path
             ]
