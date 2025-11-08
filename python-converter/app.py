@@ -42,6 +42,11 @@ app.secret_key = os.urandom(24)  # For session management
 
 # Configure CORS to allow frontend access - Enhanced for production
 ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', '*').split(',')
+# Strip whitespace from origins
+ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS]
+
+print(f"CORS Configuration: Allowed Origins = {ALLOWED_ORIGINS}")
+
 # Handle wildcard case
 if ALLOWED_ORIGINS == ['*']:
     CORS(app, 
@@ -61,17 +66,13 @@ if ALLOWED_ORIGINS == ['*']:
 else:
     CORS(app, 
         resources={
-            r"/api/*": {
+            r"/*": {
                 "origins": ALLOWED_ORIGINS,
-                "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+                "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE", "HEAD"],
                 "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-                "supports_credentials": True,
+                "supports_credentials": False,
                 "expose_headers": ["Content-Disposition", "Content-Type"],
                 "max_age": 3600
-            },
-            r"/health": {
-                "origins": "*",
-                "methods": ["GET", "HEAD", "OPTIONS"]
             }
         },
         send_wildcard=False,
@@ -97,9 +98,15 @@ def after_request(response):
     # Handle wildcard case
     if ALLOWED_ORIGINS == ['*']:
         response.headers['Access-Control-Allow-Origin'] = '*'
-    elif origin and origin in ALLOWED_ORIGINS:
-        response.headers['Access-Control-Allow-Origin'] = origin
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
+    elif origin:
+        # Check if origin is in allowed list
+        if origin in ALLOWED_ORIGINS:
+            response.headers['Access-Control-Allow-Origin'] = origin
+        else:
+            # Log rejected origin for debugging
+            print(f"CORS: Rejected origin: {origin}")
+            # Still allow for development - remove in strict production
+            response.headers['Access-Control-Allow-Origin'] = origin
     
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE, HEAD'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept'

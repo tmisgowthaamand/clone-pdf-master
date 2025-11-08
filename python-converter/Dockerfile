@@ -46,13 +46,17 @@ ENV PORT=10000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:10000/health || exit 1
 
-# Run the application
+# Run the application with optimized settings for Render free tier
 CMD gunicorn app:app \
     --bind 0.0.0.0:${PORT} \
-    --workers 2 \
+    --workers 1 \
+    --threads 2 \
     --timeout 300 \
-    --worker-class sync \
-    --max-requests 1000 \
-    --max-requests-jitter 50 \
+    --worker-class gthread \
+    --worker-tmp-dir /dev/shm \
+    --max-requests 100 \
+    --max-requests-jitter 10 \
     --access-logfile - \
-    --error-logfile -
+    --error-logfile - \
+    --log-level info \
+    --preload
