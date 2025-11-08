@@ -421,6 +421,7 @@ const WatermarkPDF = () => {
                         <Label htmlFor="watermark-text">Watermark Text</Label>
                         <Input
                           id="watermark-text"
+                          name="watermark-text"
                           value={watermarkText}
                           onChange={(e) => setWatermarkText(e.target.value)}
                           placeholder="Enter watermark text"
@@ -429,9 +430,9 @@ const WatermarkPDF = () => {
                       </div>
                       
                       <div>
-                        <Label htmlFor="font-family">Font Family</Label>
+                        <Label>Font Family</Label>
                         <Select value={fontFamily} onValueChange={setFontFamily}>
-                          <SelectTrigger id="font-family" className="mt-2">
+                          <SelectTrigger className="mt-2">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
@@ -499,6 +500,7 @@ const WatermarkPDF = () => {
                         <div className="flex gap-2 mt-2">
                           <Input
                             id="color"
+                            name="color"
                             type="color"
                             value={color}
                             onChange={(e) => setColor(e.target.value)}
@@ -521,6 +523,7 @@ const WatermarkPDF = () => {
                         <Label htmlFor="watermark-image">Upload Watermark Image</Label>
                         <Input
                           id="watermark-image"
+                          name="watermark-image"
                           type="file"
                           accept="image/*"
                           onChange={handleImageUpload}
@@ -538,9 +541,9 @@ const WatermarkPDF = () => {
                   {/* Common Settings */}
                   <div className="space-y-4 pt-4 border-t">
                     <div>
-                      <Label htmlFor="position">Position</Label>
+                      <Label>Position</Label>
                       <Select value={position} onValueChange={setPosition}>
-                        <SelectTrigger id="position" className="mt-2">
+                        <SelectTrigger className="mt-2">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="max-h-[300px]">
@@ -561,9 +564,9 @@ const WatermarkPDF = () => {
                     </div>
                     
                     <div>
-                      <Label htmlFor="layer">Layer</Label>
+                      <Label>Layer</Label>
                       <Select value={layer} onValueChange={(value: 'over' | 'below') => setLayer(value)}>
-                        <SelectTrigger id="layer" className="mt-2">
+                        <SelectTrigger className="mt-2">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
