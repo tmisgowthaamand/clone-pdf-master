@@ -1,0 +1,87 @@
+================================================================================
+BANK STATEMENT PDF GENERATOR - QUICK START
+================================================================================
+
+READY TO USE! All tests passed ✓
+
+QUICK TEST:
+-----------
+py generate_bank_statement.py
+
+OUTPUT:
+-------
+Bank_Statement_Professional.pdf (3.25 KB)
+
+FEATURES IMPLEMENTED:
+---------------------
+✓ Bank of India logo text (top right)
+✓ "Detailed Statement" header (centered)
+✓ Current date display
+✓ Account details box with border:
+  - Customer ID
+  - Account holder name
+  - Account number
+  - Account holder address
+✓ Transaction filters:
+  - Transaction Date (from/to)
+  - Amount (from/to)
+  - Cheque (from/to)
+  - Transaction type
+✓ Professional transaction table:
+  - Clean borders
+  - Right-aligned numeric columns
+  - Proper spacing and padding
+
+FILES CREATED:
+--------------
+1. excel_to_pdf_table.py          - Main converter (UPDATED)
+2. sample_statement.csv            - Sample data
+3. generate_bank_statement.py      - Quick test script
+4. test_bank_statement.py          - Test script
+5. example_usage.py                - Usage examples
+6. INTEGRATION_CODE.py             - Flask/FastAPI integration
+7. test_render_ready.py            - Render deployment test
+8. USAGE_GUIDE.txt                 - Complete guide
+
+GENERATED PDFs:
+---------------
+✓ Bank_Statement_Professional.pdf
+✓ Statement-Bank-Style.pdf
+✓ output_default.pdf
+✓ output_custom.pdf
+
+RENDER DEPLOYMENT:
+------------------
+✓ No LibreOffice required
+✓ All tests passed
+✓ Ready for production
+
+DEPENDENCIES:
+-------------
+pandas
+reportlab
+openpyxl
+
+USAGE:
+------
+from excel_to_pdf_table import convert_to_pdf_table
+
+account_info = {
+    'customer_id': '192136847',
+    'account_holder_name': 'HARINI AND THARSHINI TRADERS',
+    'account_number': '826820110000461',
+    'address': 'W/O PRABAKARAN,7A 6TH CROSS\nSTREET THIRUVALLUVAR\nNAGAR,PALNGANATHAM 625003',
+    'transaction_date_from': '02-03-2025',
+    'transaction_date_to': '02-09-2025',
+    'amount_from': '-',
+    'amount_to': '-',
+    'cheque_from': '-',
+    'cheque_to': '-',
+    'transaction_type': 'All'
+}
+
+convert_to_pdf_table('input.csv', 'output.pdf', account_info=account_info)
+
+================================================================================
+DONE! Your Bank Statement PDF generator is ready for Render deployment.
+================================================================================
