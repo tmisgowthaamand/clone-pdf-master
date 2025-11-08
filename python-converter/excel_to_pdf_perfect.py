@@ -1,36 +1,87 @@
 """
 Perfect Excel to PDF Converter
 Produces bank-statement quality PDFs with proper alignment and formatting
+Preserves images, logos, headers, and complex layouts
 Uses openpyxl + reportlab for pixel-perfect conversion
 """
 
 import os
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
+from openpyxl.drawing.image import Image as OpenpyxlImage
 from reportlab.lib.pagesizes import A4, letter
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
+from reportlab.lib.units import inch, mm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from reportlab.pdfgen import canvas
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
+from reportlab.pdfgen import canvas as pdf_canvas
 from PIL import Image
 import io
+import tempfile
+
+def extract_images_from_excel(ws, temp_dir):
+    """
+    Extract all images from Excel worksheet
+    Returns list of (image_path, anchor_cell, width, height)
+    """
+    images = []
+    
+    try:
+        if hasattr(ws, '_images'):
+            for img in ws._images:
+                # Get image data
+                image_data = img._data()
+                
+                # Save to temp file
+                img_path = os.path.join(temp_dir, f"img_{len(images)}.png")
+                with open(img_path, 'wb') as f:
+                    f.write(image_data)
+                
+                # Get anchor position
+                anchor = img.anchor
+                if hasattr(anchor, '_from'):
+                    col = anchor._from.col
+                    row = anchor._from.row
+                else:
+                    col = 0
+                    row = 0
+                
+                images.append({
+                    'path': img_path,
+                    'col': col,
+                    'row': row,
+                    'width': img.width if hasattr(img, 'width') else 100,
+                    'height': img.height if hasattr(img, 'height') else 100
+                })
+                
+                print(f"  Extracted image at row {row}, col {col}")
+    except Exception as e:
+        print(f"  Warning: Could not extract images: {str(e)}")
+    
+    return images
+
 
 def convert_excel_to_pdf_perfect(excel_path, output_path):
     """
     Convert Excel to PDF with perfect formatting
-    Preserves cell alignment, borders, colors, and merged cells
+    Preserves cell alignment, borders, colors, merged cells, and images
     """
     print(f"\n{'='*60}")
     print(f"EXCEL TO PDF - PERFECT FORMATTING")
     print(f"Input: {os.path.basename(excel_path)}")
     print(f"{'='*60}\n")
     
+    temp_dir = tempfile.mkdtemp()
+    
     try:
         # Load workbook
         wb = load_workbook(excel_path, data_only=True)
         ws = wb.active
+        
+        # Extract images
+        print("Extracting images...")
+        images = extract_images_from_excel(ws, temp_dir)
         
         # Create PDF
         doc = SimpleDocTemplate(
@@ -45,6 +96,18 @@ def convert_excel_to_pdf_perfect(excel_path, output_path):
         # Container for PDF elements
         elements = []
         styles = getSampleStyleSheet()
+        
+        # Add images/logos at the top if any
+        if images:
+            print(f"Adding {len(images)} images to PDF...")
+            for img_info in images:
+                try:
+                    # Add image (logo) - positioned at top right typically
+                    img = RLImage(img_info['path'], width=100, height=50)
+                    elements.append(img)
+                    elements.append(Spacer(1, 10))
+                except Exception as e:
+                    print(f"  Warning: Could not add image: {str(e)}")
         
         # Get all rows and columns
         max_row = ws.max_row
@@ -159,6 +222,14 @@ def convert_excel_to_pdf_perfect(excel_path, output_path):
         import traceback
         traceback.print_exc()
         return None
+    finally:
+        # Cleanup temp directory
+        try:
+            import shutil
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir, ignore_errors=True)
+        except:
+            pass
 
 
 def convert_excel_to_pdf_libreoffice_optimized(excel_path, output_dir):
