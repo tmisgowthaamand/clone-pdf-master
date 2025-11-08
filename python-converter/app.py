@@ -1762,95 +1762,77 @@ def excel_to_pdf():
                 raise RuntimeError("CSV to Excel conversion failed")
             print(f"[OK] CSV converted to Excel: {os.path.basename(excel_path)}\n")
         
-        # Use professional Python-based converter for iLovePDF quality
-        # This works on Render (Linux) without LibreOffice dependencies
+        # Use LibreOffice for EXACT Excel layout preservation (like iLovePDF)
+        # This preserves logos, images, formatting, and layout EXACTLY
         pdf_path = None
-        print("Step 2: Converting to PDF with professional converter (iLovePDF quality)...")
+        print("Step 2: Converting to PDF with LibreOffice (preserves exact Excel layout)...")
         
-        # Try professional table-based converter first (works everywhere)
-        try:
-            from excel_to_pdf_table import convert_to_pdf_table
-            
-            base_name = os.path.splitext(os.path.basename(excel_path))[0]
-            pdf_path = os.path.join(tmpdir, f"{base_name}.pdf")
-            
-            result = convert_to_pdf_table(excel_path, pdf_path)
-            
-            if result and os.path.exists(pdf_path):
-                print(f"[OK] Professional PDF created: {pdf_path}")
-                print(f"{'='*60}\n")
-            else:
-                raise RuntimeError("Professional converter failed")
+        # Detect LibreOffice executable based on platform
+        if sys.platform == 'win32':
+            soffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
+            # Kill existing LibreOffice processes (Windows only)
+            try:
+                subprocess.run(['taskkill', '/F', '/IM', 'soffice.exe', '/T'], 
+                              capture_output=True, timeout=5, encoding='utf-8', errors='replace')
+                subprocess.run(['taskkill', '/F', '/IM', 'soffice.bin', '/T'], 
+                              capture_output=True, timeout=5, encoding='utf-8', errors='replace')
+                import time
+                time.sleep(1)
+            except:
+                pass
+        else:
+            # Linux/Unix - use system LibreOffice
+            soffice_exe = shutil.which('soffice') or 'soffice'
         
-        except Exception as prof_error:
-            print(f"Professional converter error: {prof_error}")
-            print("Falling back to LibreOffice...")
-            
-            # LibreOffice fallback (for Windows or if LibreOffice is available)
-            if sys.platform == 'win32':
-                soffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
-                # Kill existing LibreOffice processes (Windows only)
-                try:
-                    subprocess.run(['taskkill', '/F', '/IM', 'soffice.exe', '/T'], 
-                                  capture_output=True, timeout=5, encoding='utf-8', errors='replace')
-                    subprocess.run(['taskkill', '/F', '/IM', 'soffice.bin', '/T'], 
-                                  capture_output=True, timeout=5, encoding='utf-8', errors='replace')
-                    import time
-                    time.sleep(1)
-                except:
-                    pass
-            else:
-                # Linux/Unix - use system LibreOffice if available
-                soffice_exe = shutil.which('soffice') or 'soffice'
-            
-            # Convert with LibreOffice
-            cmd = [
-                soffice_exe,
-                '--headless',
-                '--invisible',
-                '--nodefault',
-                '--nofirststartwizard',
-                '--nolockcheck',
-                '--nologo',
-                '--norestore',
-                '--convert-to', 'pdf:calc_pdf_Export',
-                '--outdir', tmpdir,
-                excel_path
+        # Convert with LibreOffice - EXACT Excel rendering
+        # This is what iLovePDF uses - native Excel to PDF conversion
+        cmd = [
+            soffice_exe,
+            '--headless',
+            '--invisible',
+            '--nodefault',
+            '--nofirststartwizard',
+            '--nolockcheck',
+            '--nologo',
+            '--norestore',
+            '--convert-to', 'pdf:calc_pdf_Export',
+            '--outdir', tmpdir,
+            excel_path
+        ]
+        
+        print(f"Running LibreOffice: {' '.join(cmd)}")
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=120,  # Increased timeout for complex files
+            encoding='utf-8',
+            errors='replace'
+        )
+        
+        if result.returncode != 0:
+            print(f"LibreOffice error: {result.stderr}")
+            raise RuntimeError(f"LibreOffice conversion failed: {result.stderr}")
+        
+        # Find the output PDF
+        base_name = os.path.splitext(os.path.basename(excel_path))[0]
+        pdf_path = os.path.join(tmpdir, f"{base_name}.pdf")
+        
+        if not os.path.exists(pdf_path):
+            possible_paths = [
+                os.path.join(tmpdir, f"{base_name}.pdf"),
+                os.path.join(tmpdir, f"{filename.rsplit('.', 1)[0]}.pdf")
             ]
-            
-            print(f"Running: {' '.join(cmd)}")
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=60,
-                encoding='utf-8',
-                errors='replace'
-            )
-            
-            if result.returncode != 0:
-                print(f"LibreOffice error: {result.stderr}")
-                raise RuntimeError(f"Both converters failed. Last error: {result.stderr}")
-            
-            # Find the output PDF
-            base_name = os.path.splitext(os.path.basename(excel_path))[0]
-            pdf_path = os.path.join(tmpdir, f"{base_name}.pdf")
-            
-            if not os.path.exists(pdf_path):
-                possible_paths = [
-                    os.path.join(tmpdir, f"{base_name}.pdf"),
-                    os.path.join(tmpdir, f"{filename.rsplit('.', 1)[0]}.pdf")
-                ]
-                for path in possible_paths:
-                    if os.path.exists(path):
-                        pdf_path = path
-                        break
-            
-            if not pdf_path or not os.path.exists(pdf_path):
-                raise RuntimeError("PDF file was not created")
-            
-            print(f"[OK] LibreOffice PDF created: {pdf_path}")
-            print(f"{'='*60}\n")
+            for path in possible_paths:
+                if os.path.exists(path):
+                    pdf_path = path
+                    break
+        
+        if not pdf_path or not os.path.exists(pdf_path):
+            raise RuntimeError("PDF file was not created by LibreOffice")
+        
+        print(f"[OK] PDF created with EXACT Excel layout: {pdf_path}")
+        print(f"{'='*60}\n")
         
         # Send file
         pdf_name = Path(filename).stem + '.pdf'
