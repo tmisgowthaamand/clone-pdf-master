@@ -7,8 +7,8 @@ import { ArrowLeft, RotateCw, RotateCcw, Download, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { API_ENDPOINTS } from '@/config/api';
-import { downloadBlob } from "@/utils/downloadHelper";
 
 const RotatePDF = () => {
   const { toast } = useToast();
@@ -84,8 +84,14 @@ const RotatePDF = () => {
       }
 
       const blob = await response.blob();
-      const filename = file.name.replace(/\.pdf$/i, '_rotated.pdf');
-      downloadBlob(blob, filename);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name.replace(/\.pdf$/i, '_rotated.pdf');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
       toast({
         title: "✅ Success",
@@ -193,7 +199,7 @@ const RotatePDF = () => {
                   <h3 className="text-lg font-semibold">Rotation Settings</h3>
                   
                   <div>
-                    <div className="text-sm font-medium mb-2">Rotation Direction</div>
+                    <Label>Rotation Direction</Label>
                     <div className="grid grid-cols-2 gap-4 mt-2">
                       <Button
                         type="button"
@@ -217,7 +223,7 @@ const RotatePDF = () => {
                   </div>
                   
                   <div>
-                    <div className="text-sm font-medium mb-2">Rotation Angle</div>
+                    <Label>Rotation Angle</Label>
                     <div className="grid grid-cols-4 gap-3 mt-2">
                       <Button
                         type="button"

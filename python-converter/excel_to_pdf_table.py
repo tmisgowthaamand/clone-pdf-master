@@ -6,10 +6,11 @@ Uses reportlab to create professional PDFs matching Bank of India format
 """
 
 import os
+import tempfile
 import pandas as pd
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.lib.units import inch, mm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
+from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
@@ -18,245 +19,41 @@ from reportlab.pdfbase.ttfonts import TTFont
 from datetime import datetime
 
 
-def convert_excel_to_pdf_table(excel_path, output_path, account_info=None):
+def convert_excel_to_pdf_table(excel_path, output_path, account_info=None, logo_path=None):
     """
-    Convert Excel to PDF with professional bank statement formatting
-    Auto-detects bank format (Axis, BOI, etc.) and produces iLovePDF quality
-    Works without LibreOffice - pure Python solution for Render deployment
-    
-    account_info: dict with keys like 'customer_id', 'account_holder_name', 
-                  'account_number', 'address', 'transaction_date_from', etc.
+    Convert Excel to PDF with professional table formatting and headers/footers.
     """
     print(f"\n{'='*60}")
-    print(f"EXCEL TO PDF - Bank Statement Quality")
+    print(f"EXCEL TO PDF - Professional Table Conversion")
     print(f"Input: {os.path.basename(excel_path)}")
     print(f"{'='*60}\n")
-    
+
     try:
-        # Read Excel file with openpyxl to preserve formatting
-        print("Reading Excel file...")
-        
-        # Try to read with openpyxl engine first (better for .xlsx)
-        try:
-            from openpyxl import load_workbook
-            wb = load_workbook(excel_path, data_only=True)
-            ws = wb.active
-            
-            # Convert to pandas DataFrame
-            data = ws.values
-            cols = next(data)
-            df = pd.DataFrame(data, columns=cols)
-            
-            # Also check for images/logos
-            has_images = hasattr(ws, '_images') and len(ws._images) > 0
-            
-        except:
-            # Fallback to pandas default
-            df = pd.read_excel(excel_path)
-            has_images = False
-        
+        df = pd.read_excel(excel_path)
         print(f"✓ Read {len(df)} rows x {len(df.columns)} columns")
-        if has_images:
-            print(f"✓ Found images/logos in Excel file")
-        
-        # Auto-detect if we need landscape (many columns)
-        num_cols = len(df.columns)
-        if num_cols > 6:
+
+        page_size = A4
+        if len(df.columns) > 8:
             from reportlab.lib.pagesizes import landscape
             page_size = landscape(A4)
-            print(f"✓ Using LANDSCAPE orientation for {num_cols} columns")
-        else:
-            page_size = A4
-            print(f"✓ Using PORTRAIT orientation for {num_cols} columns")
+            print("✓ Using LANDSCAPE orientation")
+
+        doc = BaseDocTemplate(output_path, pagesize=page_size)
         
-        # Create PDF with optimized margins
-        doc = SimpleDocTemplate(
-            output_path,
-            pagesize=page_size,
-            rightMargin=10*mm,
-            leftMargin=10*mm,
-            topMargin=10*mm,
-            bottomMargin=10*mm
-        )
+        # Define frames and page template
+        frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height - 20*mm, id='normal')
+        template = PageTemplate(id='main', frames=[frame], onPage=lambda canvas, doc: _header_footer(canvas, doc, logo_path))
+        doc.addPageTemplates([template])
+
+        elements = _build_story(df, account_info)
         
-        # Container for PDF elements
-        elements = []
-        styles = getSampleStyleSheet()
-        
-        # Default account info if not provided
-        if account_info is None:
-            account_info = {
-                'customer_id': '192136847',
-                'account_holder_name': 'HARINI AND THARSHINI TRADERS',
-                'account_number': '826820110000461',
-                'address': 'W/O PRABAKARAN,7A 6TH CROSS\nSTREET THIRUVALLUVAR\nNAGAR,PALNGANATHAM 625003',
-                'transaction_date_from': '02-03-2025',
-                'transaction_date_to': '02-09-2025',
-                'amount_from': '-',
-                'amount_to': '-',
-                'cheque_from': '-',
-                'cheque_to': '-',
-                'transaction_type': 'All'
-            }
-        
-        # ===== HEADER SECTION =====
-        # Bank name/logo placeholder
-        bank_name = Paragraph(
-            '<b><font size=14>BANK STATEMENT</font></b>',
-            ParagraphStyle('BankName', fontSize=14, alignment=TA_LEFT, textColor=colors.HexColor('#333333'))
-        )
-        elements.append(bank_name)
-        elements.append(Spacer(1, 3*mm))
-        
-        # Statement title with date range
-        statement_title = Paragraph(
-            f'<b>STATEMENT BETWEEN {account_info.get("transaction_date_from", "01/01/2025")} '
-            f'AND {account_info.get("transaction_date_to", "31/12/2025")} '
-            f'FOR A/C: {account_info.get("account_number", "XXXXXXXXXXXX")}</b>',
-            ParagraphStyle('Title', fontSize=11, alignment=TA_CENTER, spaceAfter=0)
-        )
-        elements.append(statement_title)
-        elements.append(Spacer(1, 5*mm))
-        
-        # ===== ACCOUNT DETAILS SECTION =====
-        # Left column - Address details
-        left_col = Paragraph(
-            f'<b>( {account_info.get("customer_id", "275")} )</b><br/>'
-            f'<b>{account_info.get("account_holder_name", "MS. SS STONE")}</b><br/>'
-            f'{account_info.get("address", "D NO 1 NMC COMPLEX<br/>MAIN ROAD<br/><br/>CHITTOOR, ANDHRA PRADESH<br/>INDIA").replace(chr(10), "<br/>")}<br/>'
-            f'<b>PIN :</b> {account_info.get("pin", "517112")}',
-            ParagraphStyle('LeftCol', fontSize=9, leading=12)
-        )
-        
-        # Right column - Account info
-        right_col = Paragraph(
-            f'<b>SCHEME CODE</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {account_info.get("scheme_code", "CURRENT ACCOUNT-NORMAL")}<br/>'
-            f'<b>CUSTOMER ID</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {account_info.get("customer_id", "XXXXX9406")}<br/>'
-            f'<b>CURRENCY CODE</b>&nbsp;&nbsp;&nbsp;: {account_info.get("currency", "INR")}<br/>'
-            f'<b>LIEN AMOUNT</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {account_info.get("lien_amount", "0.00")}<br/>'
-            f'<b>NOMINATION DETAILS</b>&nbsp;: {account_info.get("nomination", "NOMINATION NOT REGISTERED")}<br/>'
-            f'<b>KYC Status</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {account_info.get("kyc_status", "Updated")}<br/>'
-            f'<b>MICR/IFSC Code</b>&nbsp;&nbsp;&nbsp;&nbsp;: {account_info.get("ifsc", "517211102 / UTIB0000275")}<br/><br/>'
-            f'<b>CKYC NO</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {account_info.get("ckyc", "NA")}',
-            ParagraphStyle('RightCol', fontSize=9, leading=12)
-        )
-        
-        # Create two-column layout
-        details_data = [[left_col, right_col]]
-        details_table = Table(details_data, colWidths=[250, 285])
-        details_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ]))
-        elements.append(details_table)
-        elements.append(Spacer(1, 8*mm))
-        
-        # No filter section needed for this format - go straight to table
-        
-        # ===== TRANSACTION TABLE =====
-        # Prepare table data
-        # Add header row
-        table_data = [df.columns.tolist()]
-        
-        # Add data rows
-        for index, row in df.iterrows():
-            row_data = []
-            for value in row:
-                # Convert to string and handle None/NaN
-                if pd.isna(value):
-                    row_data.append("")
-                else:
-                    row_data.append(str(value))
-            table_data.append(row_data)
-        
-        print(f"Building PDF table with {len(table_data)} rows...")
-        
-        # Calculate column widths dynamically
-        page_width = page_size[0] - 20*mm  # Available width
-        
-        # Calculate width for each column based on content
-        col_widths = []
-        for col_idx in range(num_cols):
-            max_length = 0
-            for row in table_data:
-                if col_idx < len(row):
-                    max_length = max(max_length, len(str(row[col_idx])))
-            
-            # Convert to points (approximate)
-            width = min(max_length * 6 + 10, page_width / num_cols * 1.5)
-            col_widths.append(width)
-        
-        # Normalize widths to fit page
-        total_width = sum(col_widths)
-        if total_width > page_width:
-            scale = page_width / total_width
-            col_widths = [w * scale for w in col_widths]
-        
-        # Create table
-        table = Table(table_data, colWidths=col_widths, repeatRows=1)
-        
-        # Build comprehensive table style matching Bank of India format
-        table_style = TableStyle([
-            # Header row styling - professional iLovePDF look
-            ('BACKGROUND', (0, 0), (-1, 0), colors.white),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
-            ('WORDWRAP', (0, 0), (-1, 0), True),
-            
-            # Data rows styling - optimized for readability
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
-            ('WORDWRAP', (0, 1), (-1, -1), True),
-            
-            # Borders - clean professional grid like iLovePDF
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-            ('BOX', (0, 0), (-1, -1), 1, colors.black),
-            ('LINEBELOW', (0, 0), (-1, 0), 1.5, colors.black),  # Thicker line below header
-            
-            # Padding - optimized for content density
-            ('LEFTPADDING', (0, 0), (-1, -1), 4),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ])
-        
-        # Auto-detect numeric columns and right-align them
-        for col_idx in range(num_cols):
-            is_numeric = True
-            for row_idx in range(1, min(len(table_data), 10)):  # Check first 10 rows
-                if row_idx < len(table_data) and col_idx < len(table_data[row_idx]):
-                    value = table_data[row_idx][col_idx]
-                    if value and not str(value).replace('.', '').replace(',', '').replace('-', '').replace('₹', '').replace('$', '').strip().isdigit():
-                        is_numeric = False
-                        break
-            
-            if is_numeric:
-                # Right-align numeric columns
-                table_style.add('ALIGN', (col_idx, 1), (col_idx, -1), 'RIGHT')
-        
-        # Apply style to table
-        table.setStyle(table_style)
-        
-        # Add table to elements
-        elements.append(table)
-        
-        # Build PDF
-        print("Generating PDF...")
         doc.build(elements)
-        
+
         file_size = os.path.getsize(output_path) / 1024
-        print(f"✓ PDF created: {os.path.basename(output_path)}")
-        print(f"✓ File size: {file_size:.2f} KB")
+        print(f"✓ PDF created: {os.path.basename(output_path)} ({file_size:.2f} KB)")
         print(f"{'='*60}\n")
-        
         return output_path
-        
+
     except Exception as e:
         print(f"ERROR: {str(e)}")
         import traceback
@@ -264,51 +61,88 @@ def convert_excel_to_pdf_table(excel_path, output_path, account_info=None):
         return None
 
 
-def convert_csv_to_pdf_table(csv_path, output_path, account_info=None):
-    """
-    Convert CSV to PDF with proper table formatting
-    """
-    print(f"\n{'='*60}")
-    print(f"CSV TO PDF - Table-Based Conversion")
-    print(f"Input: {os.path.basename(csv_path)}")
-    print(f"{'='*60}\n")
+def _header_footer(canvas, doc, logo_path):
+    """Draws the header and footer for each page."""
+    canvas.saveState()
+    width, height = doc.pagesize
+
+    # Header
+    if logo_path and os.path.exists(logo_path):
+        canvas.drawImage(logo_path, doc.leftMargin, height - 15*mm, width=30*mm, preserveAspectRatio=True)
+    canvas.setFont('Helvetica-Bold', 12)
+    canvas.drawCentredString(width / 2.0, height - 12*mm, "Statement of Transactions")
+
+    # Footer
+    canvas.setFont('Helvetica', 9)
+    canvas.drawString(doc.leftMargin, 10*mm, f"Page {doc.page}")
+    canvas.drawCentredString(width / 2.0, 10*mm, "Generated by PDFTools")
+    canvas.drawRightString(width - doc.rightMargin, 10*mm, datetime.now().strftime("%Y-%m-%d %H:%M"))
+    canvas.restoreState()
+
+def _build_story(df, account_info):
+    """Builds the story with all the elements for the PDF."""
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # Title
+    title = Paragraph("Transaction Details", styles['h1'])
+    elements.append(title)
+    elements.append(Spacer(1, 6*mm))
+
+    # Account Info
+    if account_info:
+        info_text = f"<b>Account Holder:</b> {account_info.get('account_holder_name', 'N/A')}<br/>"
+        info_text += f"<b>Account Number:</b> {account_info.get('account_number', 'N/A')}"
+        elements.append(Paragraph(info_text, styles['Normal']))
+        elements.append(Spacer(1, 6*mm))
+
+    # Table
+    table = _create_table(df)
+    elements.append(table)
+
+    return elements
+
+def _create_table(df):
+    """Creates and styles the transaction table."""
+    table_data = [df.columns.tolist()] + df.values.tolist()
     
+    # Dynamic column widths
+    page_width = A4[0] - 40*mm
+    num_cols = len(df.columns)
+    col_widths = [page_width / num_cols] * num_cols
+
+    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+    
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F81BD')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ])
+    table.setStyle(style)
+
+    return table
+
+def convert_csv_to_pdf_table(csv_path, output_path, account_info=None, logo_path=None):
+    """
+    Convert CSV to PDF with proper table formatting.
+    This function is kept for compatibility but now acts as a wrapper.
+    """
     try:
-        # Read CSV file
-        print("Reading CSV file...")
         df = pd.read_csv(csv_path, encoding='utf-8', on_bad_lines='skip')
-        
-        print(f"✓ Read {len(df)} rows x {len(df.columns)} columns")
-        
-        # Use the same conversion function
-        # Create temporary Excel file
-        import tempfile
-        temp_excel = tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False)
-        temp_excel.close()
-        
-        # Save as Excel
-        df.to_excel(temp_excel.name, index=False, engine='openpyxl')
-        
-        # Convert Excel to PDF
-        result = convert_excel_to_pdf_table(temp_excel.name, output_path, account_info=account_info)
-        
-        # Cleanup
-        try:
-            os.unlink(temp_excel.name)
-        except:
-            pass
-        
-        return result
-        
+        with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
+            df.to_excel(tmp.name, index=False)
+            return convert_excel_to_pdf_table(tmp.name, output_path, account_info, logo_path)
     except Exception as e:
-        print(f"ERROR: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"ERROR converting CSV: {e}")
         return None
 
 
 # Main conversion function
-def convert_to_pdf_table(input_path, output_path, account_info=None):
+def convert_to_pdf_table(input_path, output_path, account_info=None, logo_path=None):
     """
     Main conversion function - handles both Excel and CSV
     
@@ -316,11 +150,12 @@ def convert_to_pdf_table(input_path, output_path, account_info=None):
                   Keys: customer_id, account_holder_name, account_number, address,
                         transaction_date_from, transaction_date_to, amount_from, 
                         amount_to, cheque_from, cheque_to, transaction_type
+    logo_path: Optional path to bank logo image
     """
     if input_path.lower().endswith('.csv'):
-        return convert_csv_to_pdf_table(input_path, output_path, account_info=account_info)
+        return convert_csv_to_pdf_table(input_path, output_path, account_info=account_info, logo_path=logo_path)
     else:
-        return convert_excel_to_pdf_table(input_path, output_path, account_info=account_info)
+        return convert_excel_to_pdf_table(input_path, output_path, account_info=account_info, logo_path=logo_path)
 
 
 # Test function
@@ -328,7 +163,7 @@ if __name__ == "__main__":
     import sys
     
     if len(sys.argv) < 2:
-        print("Usage: python excel_to_pdf_table.py <excel_or_csv_file>")
+        print("Usage: python excel_to_pdf_table.py <excel_or_csv_file> [logo_file]")
         sys.exit(1)
     
     input_file = sys.argv[1]
@@ -336,12 +171,15 @@ if __name__ == "__main__":
         print(f"ERROR: File not found: {input_file}")
         sys.exit(1)
     
+    # Optional logo
+    logo_file = sys.argv[2] if len(sys.argv) > 2 else None
+    
     # Output path
     base_name = os.path.splitext(os.path.basename(input_file))[0]
     output_dir = os.path.dirname(input_file) or '.'
     output_file = os.path.join(output_dir, f"{base_name}.pdf")
     
-    result = convert_to_pdf_table(input_file, output_file)
+    result = convert_to_pdf_table(input_file, output_file, logo_path=logo_file)
     
     if result:
         print(f"\n✓ SUCCESS: {result}")

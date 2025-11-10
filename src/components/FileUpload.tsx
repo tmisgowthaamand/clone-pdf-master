@@ -99,7 +99,6 @@ export const FileUpload = ({
         multiple={multiple}
         onChange={handleFileInput}
         id="file-upload-input"
-        name="file-upload-input"
         className="hidden"
       />
       

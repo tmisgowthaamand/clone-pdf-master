@@ -3,15 +3,16 @@ import { API_ENDPOINTS } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/FileUpload";
 import { FileList } from "@/components/FileList";
+import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Download, Sheet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
-import { useConversion } from "@/hooks/useConversion";
 
 const PDFToExcel = () => {
+  const { toast } = useToast();
   const [files, setFiles] = useState<File[]>([]);
-  const { convert, isConverting } = useConversion();
+  const [isConverting, setIsConverting] = useState(false);
 
   const handleFilesSelected = (newFiles: File[]) => {
     setFiles(newFiles);
@@ -24,13 +25,45 @@ const PDFToExcel = () => {
   const handlePythonConversion = async () => {
     if (files.length === 0) return;
     const file = files[0];
+    setIsConverting(true);
 
-    await convert(file, {
-      endpoint: API_ENDPOINTS.PDF_TO_EXCEL,
-      outputExtension: 'xlsx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      successMessage: 'Bank statement converted with logo, headers, and perfect alignment!',
-    });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(API_ENDPOINTS.PDF_TO_EXCEL, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Conversion failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name.replace('.pdf', '.xlsx');
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success!",
+        description: `PDF converted to Excel successfully!`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Conversion Failed",
+        description: error.message || "Failed to convert PDF to Excel",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConverting(false);
+    }
   };
 
   return (

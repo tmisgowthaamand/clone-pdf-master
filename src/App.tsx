@@ -30,7 +30,7 @@ function App() {
   return (
     <ThemeProvider>
       <LoadingScreen />
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <BackgroundSwitcher />
         <FloatingImages />
         <AnimatedCharacter position="right" />

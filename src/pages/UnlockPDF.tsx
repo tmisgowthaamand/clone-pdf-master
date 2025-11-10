@@ -11,7 +11,6 @@ import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { downloadBlob } from "@/utils/downloadHelper";
 
 const UnlockPDF = () => {
   const { toast } = useToast();
@@ -19,7 +18,6 @@ const UnlockPDF = () => {
   const [password, setPassword] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedPdfUrl, setProcessedPdfUrl] = useState<string | null>(null);
-  const [processedPdfBlob, setProcessedPdfBlob] = useState<Blob | null>(null);
   const [processedFileName, setProcessedFileName] = useState<string>("");
   const [needsPassword, setNeedsPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -109,7 +107,6 @@ const UnlockPDF = () => {
       const fileName = `${originalName}_unlocked_${timestamp}.pdf`;
       
       setProcessedPdfUrl(url);
-      setProcessedPdfBlob(blob);
       setProcessedFileName(fileName);
       setShowPreview(true);
       
@@ -132,8 +129,13 @@ const UnlockPDF = () => {
   };
 
   const handleDownload = () => {
-    if (processedPdfBlob) {
-      downloadBlob(processedPdfBlob, processedFileName);
+    if (processedPdfUrl) {
+      const link = document.createElement('a');
+      link.href = processedPdfUrl;
+      link.download = processedFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       
       toast({
         title: "Downloaded",
@@ -143,10 +145,9 @@ const UnlockPDF = () => {
   };
 
   const handleReset = () => {
-    setProcessedPdfUrl(null);
-    setProcessedPdfBlob(null);
-    setProcessedFileName("");
+    setFiles([]);
     setPassword("");
+    setProcessedPdfUrl(null);
     setNeedsPassword(false);
     setErrorMessage("");
     setShowPreview(false);

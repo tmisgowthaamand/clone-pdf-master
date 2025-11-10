@@ -8,7 +8,6 @@ import { ArrowLeft, Download, Split, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
-import { downloadBlob } from "@/utils/downloadHelper";
 
 const SplitPDF = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -48,7 +47,14 @@ const SplitPDF = () => {
         
         const pdfBytes = await newPdf.save();
         const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
-        downloadBlob(blob, `page_${i + 1}.pdf`);
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `page_${i + 1}.pdf`;
+        link.click();
+        
+        URL.revokeObjectURL(url);
       }
 
       toast({

@@ -8,7 +8,6 @@ import { ArrowLeft, Download, Combine, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
-import { downloadBlob } from "@/utils/downloadHelper";
 
 const MergePDF = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -46,7 +45,14 @@ const MergePDF = () => {
 
       const mergedPdfBytes = await mergedPdf.save();
       const blob = new Blob([new Uint8Array(mergedPdfBytes)], { type: 'application/pdf' });
-      downloadBlob(blob, 'merged.pdf');
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'merged.pdf';
+      link.click();
+      
+      URL.revokeObjectURL(url);
 
       toast({
         title: "Success!",

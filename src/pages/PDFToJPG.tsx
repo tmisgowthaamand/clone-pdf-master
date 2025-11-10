@@ -10,7 +10,6 @@ import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { downloadBlob } from "@/utils/downloadHelper";
 
 const PDFToJPG = () => {
   const { toast } = useToast();
@@ -79,9 +78,19 @@ const PDFToJPG = () => {
           const byteArray = new Uint8Array(byteNumbers);
           const blob = new Blob([byteArray], { type: 'image/jpeg' });
           
+          // Create download link
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = image.filename;
+          document.body.appendChild(a);
+          
           // Delay between downloads to avoid browser blocking
           await new Promise(resolve => setTimeout(resolve, 100 * i));
-          downloadBlob(blob, image.filename);
+          a.click();
+          
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
         }
 
         toast({
@@ -160,7 +169,7 @@ const PDFToJPG = () => {
                   <div className="space-y-6">
                     {/* Conversion Mode */}
                     <div>
-                      <div className="text-base font-semibold mb-3 block">Conversion Mode</div>
+                      <Label className="text-base font-semibold mb-3 block">Conversion Mode</Label>
                       <RadioGroup value={conversionMode} onValueChange={(value: any) => setConversionMode(value)}>
                         <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-accent cursor-pointer">
                           <RadioGroupItem value="pages" id="mode-pages" className="mt-1" />
@@ -195,7 +204,7 @@ const PDFToJPG = () => {
                     {/* Image Quality */}
                     {conversionMode === 'pages' && (
                       <div>
-                        <div className="text-base font-semibold mb-3 block">Image quality</div>
+                        <Label className="text-base font-semibold mb-3 block">Image quality</Label>
                         <RadioGroup value={quality} onValueChange={(value: any) => setQuality(value)}>
                           <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent cursor-pointer">
                             <RadioGroupItem value="low" id="quality-low" />

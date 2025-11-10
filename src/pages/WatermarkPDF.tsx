@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { downloadBlob } from "@/utils/downloadHelper";
 
 const WatermarkPDF = () => {
   const { toast } = useToast();
@@ -39,9 +38,8 @@ const WatermarkPDF = () => {
     setFiles(newFiles);
     if (newFiles.length > 0) {
       const file = newFiles[0];
-      // Optimize: Use blob URL with type hint for faster loading
       const url = URL.createObjectURL(file);
-      setPdfPreview(url + '#toolbar=0&navpanes=0&scrollbar=0'); // Disable PDF toolbar for faster rendering
+      setPdfPreview(url);
     }
   };
 
@@ -149,8 +147,14 @@ const WatermarkPDF = () => {
 
       // Download the watermarked PDF
       const blob = await response.blob();
-      const filename = file.name.replace(/\.pdf$/i, '_watermarked.pdf');
-      downloadBlob(blob, filename);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name.replace(/\.pdf$/i, '_watermarked.pdf');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
       toast({
         title: "✅ Success!",
@@ -171,8 +175,8 @@ const WatermarkPDF = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-background" style={{ scrollBehavior: 'smooth' }}>
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="w-4 h-4" />
@@ -231,13 +235,11 @@ const WatermarkPDF = () => {
                       </span>
                     </div>
                     <div className="relative bg-white dark:bg-gray-900 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700" style={{ height: '600px' }}>
-                      {/* PDF Preview - Optimized for faster loading */}
+                      {/* PDF Preview */}
                       <iframe
                         src={pdfPreview}
                         className="w-full h-full"
                         title="PDF Preview"
-                        loading="lazy"
-                        style={{ contain: 'strict' }}
                       />
                       
                       {/* Position Grid Overlay - Shows all 9 positions */}
@@ -421,7 +423,6 @@ const WatermarkPDF = () => {
                         <Label htmlFor="watermark-text">Watermark Text</Label>
                         <Input
                           id="watermark-text"
-                          name="watermark-text"
                           value={watermarkText}
                           onChange={(e) => setWatermarkText(e.target.value)}
                           placeholder="Enter watermark text"
@@ -430,12 +431,12 @@ const WatermarkPDF = () => {
                       </div>
                       
                       <div>
-                        <Label>Font Family</Label>
+                        <Label htmlFor="font-family">Font Family</Label>
                         <Select value={fontFamily} onValueChange={setFontFamily}>
                           <SelectTrigger className="mt-2">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
+                          <SelectContent>
                             <SelectItem value="Arial">Arial</SelectItem>
                             <SelectItem value="Times New Roman">Times New Roman</SelectItem>
                             <SelectItem value="Courier New">Courier New</SelectItem>
@@ -452,7 +453,6 @@ const WatermarkPDF = () => {
                         <Label htmlFor="font-size">Font Size: {fontSize[0]}px</Label>
                         <Slider
                           id="font-size"
-                          name="font-size"
                           value={fontSize}
                           onValueChange={setFontSize}
                           min={10}
@@ -463,7 +463,7 @@ const WatermarkPDF = () => {
                       </div>
                       
                       <div>
-                        <div className="text-sm font-medium mb-2">Text Formatting</div>
+                        <Label>Text Formatting</Label>
                         <div className="flex gap-2 mt-2">
                           <Button
                             type="button"
@@ -500,15 +500,12 @@ const WatermarkPDF = () => {
                         <div className="flex gap-2 mt-2">
                           <Input
                             id="color"
-                            name="color"
                             type="color"
                             value={color}
                             onChange={(e) => setColor(e.target.value)}
                             className="w-20 h-10"
                           />
                           <Input
-                            id="color-text"
-                            name="color-text"
                             value={color}
                             onChange={(e) => setColor(e.target.value)}
                             placeholder="#000000"
@@ -523,7 +520,6 @@ const WatermarkPDF = () => {
                         <Label htmlFor="watermark-image">Upload Watermark Image</Label>
                         <Input
                           id="watermark-image"
-                          name="watermark-image"
                           type="file"
                           accept="image/*"
                           onChange={handleImageUpload}
@@ -541,12 +537,12 @@ const WatermarkPDF = () => {
                   {/* Common Settings */}
                   <div className="space-y-4 pt-4 border-t">
                     <div>
-                      <Label>Position</Label>
+                      <Label htmlFor="position">Position</Label>
                       <Select value={position} onValueChange={setPosition}>
                         <SelectTrigger className="mt-2">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="max-h-[300px]">
+                        <SelectContent>
                           <SelectItem value="diagonal">Full Page Diagonal</SelectItem>
                           <SelectItem value="mosaic">Mosaic (Grid Pattern)</SelectItem>
                           <SelectItem value="tile">Tile (Repeat)</SelectItem>
@@ -564,12 +560,12 @@ const WatermarkPDF = () => {
                     </div>
                     
                     <div>
-                      <Label>Layer</Label>
+                      <Label htmlFor="layer">Layer</Label>
                       <Select value={layer} onValueChange={(value: 'over' | 'below') => setLayer(value)}>
                         <SelectTrigger className="mt-2">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
+                        <SelectContent>
                           <SelectItem value="over">Over the PDF content</SelectItem>
                           <SelectItem value="below">Below the PDF content</SelectItem>
                         </SelectContent>
@@ -580,7 +576,6 @@ const WatermarkPDF = () => {
                       <Label htmlFor="opacity">Opacity: {opacity[0]}%</Label>
                       <Slider
                         id="opacity"
-                        name="opacity"
                         value={opacity}
                         onValueChange={setOpacity}
                         min={0}
@@ -594,7 +589,6 @@ const WatermarkPDF = () => {
                       <Label htmlFor="rotation">Rotation: {rotation[0]}°</Label>
                       <Slider
                         id="rotation"
-                        name="rotation"
                         value={rotation}
                         onValueChange={setRotation}
                         min={-180}

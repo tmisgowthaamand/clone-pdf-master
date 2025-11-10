@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { downloadBlob } from "@/utils/downloadHelper";
 
 const HTMLToPDF = () => {
   const { toast } = useToast();
@@ -115,8 +114,14 @@ const HTMLToPDF = () => {
       }
 
       const blob = await response.blob();
-      const filename = url ? `${new URL(url).hostname}.pdf` : 'converted.pdf';
-      downloadBlob(blob, filename);
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = url ? `${new URL(url).hostname}.pdf` : 'converted.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
 
       toast({
         title: "✅ Success",
@@ -295,7 +300,7 @@ const HTMLToPDF = () => {
                 <div>
                   <Label htmlFor="pageSize">Page Size</Label>
                   <Select value={pageSize} onValueChange={setPageSize}>
-                    <SelectTrigger id="pageSize" className="mt-2">
+                    <SelectTrigger className="mt-2">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -311,7 +316,7 @@ const HTMLToPDF = () => {
                 <div>
                   <Label htmlFor="orientation">Orientation</Label>
                   <Select value={orientation} onValueChange={(v: 'portrait' | 'landscape') => setOrientation(v)}>
-                    <SelectTrigger id="orientation" className="mt-2">
+                    <SelectTrigger className="mt-2">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -327,10 +332,8 @@ const HTMLToPDF = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="margin-top">Top: {marginTop[0]}mm</Label>
+                    <Label>Top: {marginTop[0]}mm</Label>
                     <Slider
-                      id="margin-top"
-                      name="margin-top"
                       value={marginTop}
                       onValueChange={setMarginTop}
                       min={0}
@@ -341,10 +344,8 @@ const HTMLToPDF = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="margin-bottom">Bottom: {marginBottom[0]}mm</Label>
+                    <Label>Bottom: {marginBottom[0]}mm</Label>
                     <Slider
-                      id="margin-bottom"
-                      name="margin-bottom"
                       value={marginBottom}
                       onValueChange={setMarginBottom}
                       min={0}
@@ -355,10 +356,8 @@ const HTMLToPDF = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="margin-left">Left: {marginLeft[0]}mm</Label>
+                    <Label>Left: {marginLeft[0]}mm</Label>
                     <Slider
-                      id="margin-left"
-                      name="margin-left"
                       value={marginLeft}
                       onValueChange={setMarginLeft}
                       min={0}
@@ -369,10 +368,8 @@ const HTMLToPDF = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="margin-right">Right: {marginRight[0]}mm</Label>
+                    <Label>Right: {marginRight[0]}mm</Label>
                     <Slider
-                      id="margin-right"
-                      name="margin-right"
                       value={marginRight}
                       onValueChange={setMarginRight}
                       min={0}

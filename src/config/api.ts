@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
   // To PDF Conversion
   WORD_TO_PDF: `${API_URL}/api/convert/docx-to-pdf`,
   EXCEL_TO_PDF: `${API_URL}/api/convert/excel-to-pdf`,
+  EXCEL_TO_BANK_STATEMENT: `${API_URL}/api/convert/excel-to-bank-statement`,
   PPTX_TO_PDF: `${API_URL}/api/convert/pptx-to-pdf`,
   JPG_TO_PDF: `${API_URL}/api/convert/jpg-to-pdf`,
   HTML_TO_PDF: `${API_URL}/api/html-to-pdf`,

@@ -624,8 +624,6 @@ const SignPDF = () => {
                   
                   <TabsContent value="upload">
                     <input
-                      id="signature-upload"
-                      name="signature-upload"
                       ref={signatureInputRef}
                       type="file"
                       accept="image/*"
@@ -644,7 +642,7 @@ const SignPDF = () => {
 
                   <TabsContent value="draw" className="space-y-4">
                     <div>
-                      <div className="text-sm font-medium mb-2">Draw Your Signature</div>
+                      <Label>Draw Your Signature</Label>
                       <canvas
                         ref={canvasRef}
                         width={400}
@@ -700,14 +698,12 @@ const SignPDF = () => {
               </Card>
 
               {/* Company Stamp */}
-              <Card className="p-6 bg-muted/50">
+              <Card className="p-4 bg-muted/50">
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                   <Building2 className="w-6 h-6" />
                   <span>Company Stamp</span>
                 </h2>
                 <input
-                  id="stamp-upload"
-                  name="stamp-upload"
                   ref={stampInputRef}
                   type="file"
                   accept="image/*"
@@ -728,21 +724,51 @@ const SignPDF = () => {
                     <p className="text-sm font-medium mb-2">Company Stamp:</p>
                     <img src={stampData} alt="Stamp" className="max-w-full h-auto max-h-32" />
                     
-                    <div className="mt-4 space-y-2">
-                      <p className="text-sm font-medium">Quick Add (iLovePDF Style):</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Button size="sm" onClick={() => addQuickPlacement(75, 88, 15, 'stamp')} className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
-                          <span className="text-base leading-none">📍</span>
-                          <span className="text-sm">Bottom Right</span>
-                        </Button>
-                        <Button size="sm" onClick={() => addQuickPlacement(50, 88, 15, 'stamp')} className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
-                          <span className="text-base leading-none">📍</span>
-                          <span className="text-sm">Bottom Center</span>
-                        </Button>
-                        <Button size="sm" onClick={() => addQuickPlacement(50, 5, 15, 'stamp')} className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
-                          <span className="text-base leading-none">📍</span>
-                          <span className="text-sm">Top Center</span>
-                        </Button>
+                    <div className="mt-4">
+                      <p className="text-xs font-medium text-gray-600 mb-3">Quick Add Position:</p>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <button 
+                          onClick={() => addQuickPlacement(75, 88, 15, 'stamp')} 
+                          className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                        >
+                          <span className="text-lg">📍</span>
+                          <span>Bottom Right</span>
+                        </button>
+                        <button 
+                          onClick={() => addQuickPlacement(10, 88, 15, 'stamp')} 
+                          className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                        >
+                          <span className="text-lg">📍</span>
+                          <span>Bottom Left</span>
+                        </button>
+                        <button 
+                          onClick={() => addQuickPlacement(42.5, 88, 15, 'stamp')} 
+                          className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                        >
+                          <span className="text-lg">📍</span>
+                          <span>Bottom Center</span>
+                        </button>
+                        <button 
+                          onClick={() => addQuickPlacement(75, 5, 15, 'stamp')} 
+                          className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                        >
+                          <span className="text-lg">📍</span>
+                          <span>Top Right</span>
+                        </button>
+                        <button 
+                          onClick={() => addQuickPlacement(10, 5, 15, 'stamp')} 
+                          className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                        >
+                          <span className="text-lg">📍</span>
+                          <span>Top Left</span>
+                        </button>
+                        <button 
+                          onClick={() => addQuickPlacement(42.5, 5, 15, 'stamp')} 
+                          className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                        >
+                          <span className="text-lg">📍</span>
+                          <span>Top Center</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -751,29 +777,55 @@ const SignPDF = () => {
 
               {/* Quick Add Signature */}
               {signatureData && (
-                <Card className="p-6 bg-muted/50">
+                <Card className="p-4 bg-muted/50">
                   <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <span>3️⃣</span>
                     <span>Quick Add Signature</span>
                   </h2>
-                  <p className="text-sm text-gray-600 mb-3">Like SmallPDF - Click to add signature</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button size="sm" onClick={() => addQuickPlacement(75, 88, 20, 'signature')} className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
-                      <span className="text-base leading-none">📍</span>
-                      <span className="text-sm">Bottom Right</span>
-                    </Button>
-                    <Button size="sm" onClick={() => addQuickPlacement(10, 88, 20, 'signature')} className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
-                      <span className="text-base leading-none">📍</span>
-                      <span className="text-sm">Bottom Left</span>
-                    </Button>
-                    <Button size="sm" onClick={() => addQuickPlacement(75, 5, 20, 'signature')} className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
-                      <span className="text-base leading-none">📍</span>
-                      <span className="text-sm">Top Right</span>
-                    </Button>
-                    <Button size="sm" onClick={() => addQuickPlacement(10, 5, 20, 'signature')} className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
-                      <span className="text-base leading-none">📍</span>
-                      <span className="text-sm">Top Left</span>
-                    </Button>
+                  <p className="text-xs font-medium text-gray-600 mb-3">Click to add signature:</p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button 
+                      onClick={() => addQuickPlacement(75, 88, 20, 'signature')} 
+                      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                    >
+                      <span className="text-lg">📍</span>
+                      <span>Bottom Right</span>
+                    </button>
+                    <button 
+                      onClick={() => addQuickPlacement(10, 88, 20, 'signature')} 
+                      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                    >
+                      <span className="text-lg">📍</span>
+                      <span>Bottom Left</span>
+                    </button>
+                    <button 
+                      onClick={() => addQuickPlacement(42.5, 88, 20, 'signature')} 
+                      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                    >
+                      <span className="text-lg">📍</span>
+                      <span>Bottom Center</span>
+                    </button>
+                    <button 
+                      onClick={() => addQuickPlacement(75, 5, 20, 'signature')} 
+                      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                    >
+                      <span className="text-lg">📍</span>
+                      <span>Top Right</span>
+                    </button>
+                    <button 
+                      onClick={() => addQuickPlacement(10, 5, 20, 'signature')} 
+                      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                    >
+                      <span className="text-lg">📍</span>
+                      <span>Top Left</span>
+                    </button>
+                    <button 
+                      onClick={() => addQuickPlacement(42.5, 5, 20, 'signature')} 
+                      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                    >
+                      <span className="text-lg">📍</span>
+                      <span>Top Center</span>
+                    </button>
                   </div>
                 </Card>
               )}

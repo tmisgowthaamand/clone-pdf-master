@@ -3,15 +3,16 @@ import { API_ENDPOINTS } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/FileUpload";
 import { FileList } from "@/components/FileList";
+import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Download, Presentation } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
-import { useConversion } from "@/hooks/useConversion";
 
 const PowerPointToPDF = () => {
+  const { toast } = useToast();
   const [files, setFiles] = useState<File[]>([]);
-  const { convert, isConverting } = useConversion();
+  const [isConverting, setIsConverting] = useState(false);
 
   const handleFilesSelected = (newFiles: File[]) => {
     setFiles(newFiles);
@@ -24,15 +25,54 @@ const PowerPointToPDF = () => {
   const handlePythonConversion = async () => {
     if (files.length === 0) return;
     const file = files[0];
+    setIsConverting(true);
+    
+    try {
+      toast({
+        title: "🚀 Starting Conversion...",
+        description: "Converting PowerPoint to PDF...",
+      });
 
-    await convert(file, {
-      endpoint: API_ENDPOINTS.PPTX_TO_PDF,
-      outputExtension: 'pdf',
-      mimeType: 'application/pdf',
-      successMessage: 'PowerPoint converted to PDF successfully!',
-    });
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(API_ENDPOINTS.PPTX_TO_PDF, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Conversion failed');
+      }
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name.replace(/\.(pptx?|ppt)$/i, '.pdf');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "✅ Conversion Complete!",
+        description: "PowerPoint converted to PDF successfully",
+      });
+      
+      setIsConverting(false);
+    } catch (error) {
+      console.error('Conversion error:', error);
+      setIsConverting(false);
+      
+      toast({
+        title: "❌ Conversion Failed",
+        description: error instanceof Error ? error.message : 'Make sure Python backend is running on port 5000',
+        variant: "destructive",
+      });
+    }
   };
-
 
   return (
     <div className="min-h-screen bg-background">

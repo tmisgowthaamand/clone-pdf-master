@@ -8,7 +8,6 @@ Professional-grade conversion using LibreOffice
 import sys
 import io
 import os
-import gc  # Garbage collector for memory management
 
 # Fix Windows encoding issues - force UTF-8
 if sys.platform == 'win32':
@@ -38,54 +37,19 @@ from reportlab.lib.colors import HexColor
 from datetime import datetime
 import requests
 
-# Memory optimization helper
-def cleanup_memory():
-    """Force garbage collection to free memory"""
-    gc.collect()
-    gc.collect()  # Call twice for better cleanup
-
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # For session management
 
-# Configure CORS to allow frontend access - Enhanced for production
+# Configure CORS to allow frontend access
 ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', '*').split(',')
-# Strip whitespace from origins
-ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS]
-
-print(f"CORS Configuration: Allowed Origins = {ALLOWED_ORIGINS}")
-
-# Handle wildcard case
-if ALLOWED_ORIGINS == ['*']:
-    CORS(app, 
-        resources={
-            r"/*": {
-                "origins": "*",
-                "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE", "HEAD"],
-                "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-                "expose_headers": ["Content-Disposition", "Content-Type"],
-                "max_age": 3600
-            }
-        },
-        send_wildcard=True,
-        always_send=True,
-        automatic_options=True
-    )
-else:
-    CORS(app, 
-        resources={
-            r"/*": {
-                "origins": ALLOWED_ORIGINS,
-                "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE", "HEAD"],
-                "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-                "supports_credentials": False,
-                "expose_headers": ["Content-Disposition", "Content-Type"],
-                "max_age": 3600
-            }
-        },
-        send_wildcard=False,
-        always_send=True,
-        automatic_options=True
-    )
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"],
+        "supports_credentials": True
+    }
+})
 
 # Add LibreOffice to PATH (cross-platform)
 if sys.platform == 'win32':
@@ -95,32 +59,6 @@ if sys.platform == 'win32':
 
 ALLOWED_EXTENSIONS = {'ppt', 'pptx', 'pdf', 'doc', 'docx'}
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
-
-# Additional CORS headers for all responses
-@app.after_request
-def after_request(response):
-    """Add CORS headers to all responses for better compatibility"""
-    origin = request.headers.get('Origin')
-    
-    # Handle wildcard case
-    if ALLOWED_ORIGINS == ['*']:
-        response.headers['Access-Control-Allow-Origin'] = '*'
-    elif origin:
-        # Check if origin is in allowed list
-        if origin in ALLOWED_ORIGINS:
-            response.headers['Access-Control-Allow-Origin'] = origin
-        else:
-            # Log rejected origin for debugging
-            print(f"CORS: Rejected origin: {origin}")
-            # Still allow for development - remove in strict production
-            response.headers['Access-Control-Allow-Origin'] = origin
-    
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE, HEAD'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept'
-    response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Type'
-    response.headers['Access-Control-Max-Age'] = '3600'
-    
-    return response
 
 def allowed_file(filename, allowed_types=None):
     if allowed_types is None:
@@ -198,17 +136,16 @@ def convert_pdf_to_pptx(input_path, output_dir):
         
         print(f"Converting PDF to PowerPoint: {input_path}")
         
-        # Optimized: Use lower DPI for faster conversion (150 instead of 200)
-        # 150 DPI is sufficient for presentations and 3x faster than 300 DPI
-        dpi = 150
+        # Optimized: Use lower DPI for faster conversion (200 instead of 300)
+        # Still maintains good quality while being 2x faster
+        dpi = 200
         
         # Convert PDF pages to images (poppler is in PATH on Linux/Docker)
         images = convert_from_path(
             str(input_path),
             dpi=dpi,
-            fmt='jpeg',  # JPEG is 5x faster than PNG for this use case
-            thread_count=4,  # Use 4 threads for faster processing
-            use_pdftocairo=True  # Faster rendering engine
+            fmt='png',
+            thread_count=2  # Use 2 threads for faster processing
         )
         
         print(f"Converted {len(images)} pages to images")
@@ -221,9 +158,9 @@ def convert_pdf_to_pptx(input_path, output_dir):
         # Add each image as a slide with FULL BACKGROUND
         for idx, image in enumerate(images, 1):
             # Save image temporarily
-            with tmp.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_img:
-                # Optimize: Use JPEG with 85% quality for 5x faster save
-                image.save(tmp_img.name, 'JPEG', quality=85, optimize=True)
+            with tmp.NamedTemporaryFile(suffix='.png', delete=False) as tmp_img:
+                # Optimize: Use lower quality PNG for faster save
+                image.save(tmp_img.name, 'PNG', optimize=True)
                 tmp_img_path = tmp_img.name
             
             # Add blank slide
@@ -564,26 +501,18 @@ def convert_pdf_to_docx_endpoint():
 
 @app.route('/api/convert/pdf-to-excel', methods=['POST'])
 def pdf_to_excel():
-    """Convert PDF to Excel - Fast & Accurate Mode"""
-    # Use the new fast converter
-    from pdf_to_excel_fast import pdf_to_excel_fast
-    return pdf_to_excel_fast()
+    """Convert PDF to Excel - Optimized for speed"""
     tmpdir = None
     try:
         if 'file' not in request.files:
-            print("ERROR: No file in request")
             return jsonify({'error': 'No file provided'}), 400
         
         file = request.files['file']
         if file.filename == '':
-            print("ERROR: Empty filename")
             return jsonify({'error': 'No file selected'}), 400
         
         if not allowed_file(file.filename, {'pdf'}):
-            print(f"ERROR: Invalid file type: {file.filename}")
             return jsonify({'error': 'Only PDF files are allowed'}), 400
-        
-        print(f"✓ File received: {file.filename}")
         
         # Create temp directory
         tmpdir = tempfile.mkdtemp()
@@ -594,19 +523,10 @@ def pdf_to_excel():
         file.save(pdf_path)
         
         print(f"Converting PDF to Excel: {filename}")
-        print(f"File size: {os.path.getsize(pdf_path) / 1024:.2f} KB")
         
         # Use PyMuPDF to extract images, text, and tables
         import fitz
         doc = fitz.open(pdf_path)
-        total_pages = len(doc)
-        print(f"Total pages: {total_pages}")
-        
-        # For large PDFs, warn about processing time
-        if total_pages > 10:
-            print(f"⚠ Large PDF detected ({total_pages} pages)")
-            print(f"  Processing first 5 pages for faster conversion...")
-            print(f"  Estimated time: 20-30 seconds")
         
         # Create Excel file
         excel_name = Path(filename).stem + '.xlsx'
@@ -626,12 +546,10 @@ def pdf_to_excel():
         # Process first page to extract logo and headers
         page = doc[0]
         
-        # Extract and add images (Bank logo) - TOP-LEFT like PDF
+        # Extract and add images (Bank logo)
         image_list = page.get_images()
-        logo_added = False
         if image_list:
             print(f"Found {len(image_list)} images (logos)")
-            # Get the largest image (usually the bank logo)
             for img_index, img in enumerate(image_list):
                 try:
                     xref = img[0]
@@ -639,164 +557,64 @@ def pdf_to_excel():
                     image_bytes = base_image["image"]
                     image_ext = base_image["ext"]
                     
-                    # Skip very small images (likely icons)
-                    if len(image_bytes) < 1000:
-                        continue
-                    
                     # Save image temporarily
-                    img_path = os.path.join(tmpdir, f'bank_logo.{image_ext}')
+                    img_path = os.path.join(tmpdir, f'logo.{image_ext}')
                     with open(img_path, 'wb') as img_file:
                         img_file.write(image_bytes)
                     
-                    # Add image to Excel (TOP-LEFT like in PDF)
+                    # Add image to Excel (top right, like bank statements)
                     excel_img = OpenpyxlImage(img_path)
-                    
-                    # Smart resize: maintain aspect ratio, max height 50px
-                    if excel_img.height > 50:
-                        ratio = 50 / excel_img.height
-                        excel_img.height = 50
+                    # Resize to reasonable size
+                    if excel_img.height > 80:
+                        ratio = 80 / excel_img.height
+                        excel_img.height = 80
                         excel_img.width = int(excel_img.width * ratio)
                     
-                    # Position in TOP-LEFT corner (A1) like PDF
-                    ws.add_image(excel_img, 'A1')
-                    logo_added = True
-                    print(f"  ✓ Bank logo added to Excel (top-left, matching PDF)")
-                    break  # Only add the first valid logo
+                    # Position in top right (column H)
+                    ws.add_image(excel_img, 'H1')
+                    print(f"  Added logo to Excel")
                 except Exception as e:
                     print(f"  Warning: Could not add image: {e}")
         
-        # Extract ALL text from first page to preserve layout
+        # Extract text for title and headers
         text_dict = page.get_text("dict")
         blocks = text_dict["blocks"]
         
-        # Start after logo (row 1 for customer details)
-        current_row = 1
-        
-        # Extract and organize text by position (like PDF layout)
-        text_lines = []
+        # Find "Detailed Statement" title
         for block in blocks:
             if block["type"] == 0:  # Text block
                 for line in block["lines"]:
                     line_text = ""
-                    font_size = 0
-                    y_pos = line["bbox"][1]  # Y position
                     for span in line["spans"]:
                         line_text += span["text"]
-                        font_size = max(font_size, span.get("size", 0))
-                    
-                    if line_text.strip():
-                        text_lines.append({
-                            'text': line_text.strip(),
-                            'y_pos': y_pos,
-                            'font_size': font_size
-                        })
+                    if "Detailed Statement" in line_text:
+                        # Add title (centered, bold, large)
+                        ws.merge_cells('A2:G2')
+                        title_cell = ws['A2']
+                        title_cell.value = "Detailed Statement"
+                        title_cell.font = Font(size=16, bold=True)
+                        title_cell.alignment = Alignment(horizontal='center', vertical='center')
+                        ws.row_dimensions[2].height = 25  # Make title row taller
+                        print("  Added 'Detailed Statement' title")
+                        break
         
-        # Sort by Y position (top to bottom)
-        text_lines.sort(key=lambda x: x['y_pos'])
-        
-        # Extract statement header (Statement for A/c ...)
-        statement_header = ""
-        for line in text_lines[:15]:
-            if "STATEMENT FOR" in line['text'].upper() or "STATEMENT BETWEEN" in line['text'].upper():
-                statement_header = line['text']
-                print(f"  ✓ Found statement header: {statement_header[:50]}...")
-                break
-        
-        # Add statement header if found (row 1, merged across columns)
-        if statement_header:
-            ws.merge_cells('A1:H1')
-            header_cell = ws['A1']
-            header_cell.value = statement_header
-            header_cell.font = Font(size=10, bold=True)
-            header_cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-            ws.row_dimensions[1].height = 30
-            current_row = 2
-        
-        # Extract customer details and account info with better detection
-        customer_details = []
-        account_info = []
-        
-        # Keywords for customer details (left side)
-        customer_keywords = ['CUSTOMER ID', 'NAME', 'ADDRESS', 'A/C TYPE', 'MOBILE', 'E-MAIL', 'KAMARAJ', 'TIRUNELVELI', 'TAMIL NADU', 'NORTH STREET']
-        # Keywords for account info (right side)  
-        account_keywords = ['BRANCH CODE', 'BRANCH NAME', 'IFSC', 'MICR', 'PHONE', 'RADHAPURAM', 'SOUTH CAR']
-        
-        for line in text_lines:
-            text = line['text']
-            # Skip very short lines
-            if len(text.strip()) < 3:
-                continue
-            
-            # Check if it's customer detail or account info
-            is_customer = any(keyword in text.upper() for keyword in customer_keywords)
-            is_account = any(keyword in text.upper() for keyword in account_keywords)
-            
-            if is_customer and not is_account:
-                customer_details.append(text)
-            elif is_account:
-                account_info.append(text)
-        
-        # Add customer details (left side, columns A-D) - iLovePDF style
-        detail_row = current_row
-        for detail in customer_details[:15]:  # Limit to 15 lines
-            ws.cell(row=detail_row, column=1, value=detail)
-            ws.cell(row=detail_row, column=1).font = Font(size=9)
-            ws.cell(row=detail_row, column=1).alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
-            detail_row += 1
-        
-        # Add account info (right side, columns F-H) - iLovePDF style with labels and values
-        info_row = current_row
-        for info in account_info[:15]:  # Limit to 15 lines
-            if ':' in info:
-                parts = info.split(':', 1)
-                label = parts[0].strip()
-                value = parts[1].strip() if len(parts) > 1 else ''
-                
-                # Label in column F (bold)
-                ws.cell(row=info_row, column=6, value=label)
-                ws.cell(row=info_row, column=6).font = Font(size=9, bold=True)
-                ws.cell(row=info_row, column=6).alignment = Alignment(horizontal='left', vertical='top')
-                
-                # Value in column G
-                ws.cell(row=info_row, column=7, value=value)
-                ws.cell(row=info_row, column=7).font = Font(size=9)
-                ws.cell(row=info_row, column=7).alignment = Alignment(horizontal='left', vertical='top')
-            else:
-                ws.cell(row=info_row, column=6, value=info)
-                ws.cell(row=info_row, column=6).font = Font(size=9)
-                ws.cell(row=info_row, column=6).alignment = Alignment(horizontal='left', vertical='top')
-            info_row += 1
-        
-        # Start table after customer/account details (row 4 like iLovePDF)
-        current_row = 4 if max(detail_row, info_row) < 4 else max(detail_row, info_row) + 1
-        print(f"  ✓ Customer details: {len(customer_details)} lines")
-        print(f"  ✓ Account info: {len(account_info)} lines")
-        print(f"  ✓ Table will start at row: {current_row}")
+        # Start table from row 4 (right after title)
+        current_row = 4
         
         # Now extract tables using Camelot
         print("\nExtracting tables...")
         all_tables = []
         
-        # Try lattice mode first - Optimized for MAXIMUM speed
+        # Try lattice mode first
         try:
             print("Strategy 1: Lattice mode (bordered tables)...")
-            # For large PDFs, process first 5 pages only for speed
-            page_range = '1-5' if len(doc) > 10 else 'all'
-            print(f"  Processing pages: {page_range} (Total: {len(doc)} pages)")
-            
             tables = camelot.read_pdf(
                 str(pdf_path), 
-                pages=page_range,  # Limit pages for speed
+                pages='all', 
                 flavor='lattice',
                 line_scale=40,
-                shift_text=['l', 't'],
-                suppress_stdout=True,
-                strip_text='\n',
-                split_text=True,
-                copy_text=['v'],
-                parallel=True  # Enable parallel processing
+                shift_text=['l', 't']
             )
-            print(f"  Found {len(tables)} tables with lattice mode")
             if tables and len(tables) > 0:
                 for idx, table in enumerate(tables):
                     df = table.df
@@ -832,9 +650,9 @@ def pdf_to_excel():
                             df = df.dropna(how='all')
                             
                             all_tables.append(df)
-                            print(f"  ✓ Table {idx + 1}: {len(df)} rows x {len(df.columns)} columns")
+                            print(f"  [OK] Table {idx + 1}: {len(df)} rows x {len(df.columns)} columns")
         except Exception as e:
-            print(f"  ✗ Lattice mode failed: {str(e)}")
+            print(f"  Lattice mode failed: {str(e)}")
         
         # Try stream mode if no tables found
         if not all_tables:
@@ -842,12 +660,11 @@ def pdf_to_excel():
                 print("Strategy 2: Stream mode (borderless tables)...")
                 tables = camelot.read_pdf(
                     str(pdf_path), 
-                    pages='1-5' if len(doc) > 10 else 'all',  # Limit pages for speed
+                    pages='all', 
                     flavor='stream',
                     edge_tol=50,
                     row_tol=10,
-                    column_tol=10,
-                    suppress_stdout=True  # 30% faster
+                    column_tol=10
                 )
                 if tables and len(tables) > 0:
                     for idx, table in enumerate(tables):
@@ -889,79 +706,16 @@ def pdf_to_excel():
                 print(f"  Stream mode failed: {str(e)}")
         
         if not all_tables:
-            # If no tables found, try OCR for image-based PDFs
-            print("⚠ Warning: No tables found with Camelot")
-            print("  Attempting OCR extraction for image-based PDF...")
-            
-            try:
-                import pytesseract
-                from PIL import Image
-                import io
-                
-                # Set Tesseract path for Windows
-                pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-                
-                # Try to extract text using OCR from images
-                for page_num in range(min(5, len(doc))):  # Process first 5 pages
-                    page = doc[page_num]
-                    
-                    # Convert page to image
-                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom for better OCR
-                    img_data = pix.tobytes("png")
-                    img = Image.open(io.BytesIO(img_data))
-                    
-                    # Perform OCR
-                    print(f"  Running OCR on page {page_num + 1}...")
-                    text = pytesseract.image_to_string(img, lang='eng')
-                    
-                    if text.strip():
-                        # Add page header
-                        ws.cell(row=current_row, column=1, value=f"Page {page_num + 1}")
-                        ws.cell(row=current_row, column=1).font = Font(bold=True, size=12)
-                        current_row += 1
-                        
-                        # Split text into lines and add to Excel
-                        lines = text.strip().split('\n')
-                        for line in lines:
-                            if line.strip():
-                                ws.cell(row=current_row, column=1, value=line.strip())
-                                current_row += 1
-                        current_row += 1  # Add spacing
-                
-                print(f"  ✓ OCR extraction completed")
-                
-            except (ImportError, Exception) as e:
-                print(f"  ✗ OCR not available: {str(e)}")
-                print("  Falling back to basic text extraction...")
-                print("  Note: Install Tesseract OCR for better image-based PDF extraction")
-                
-                # Fallback: Extract basic text
-                for page_num in range(min(5, len(doc))):
-                    page = doc[page_num]
-                    text = page.get_text()
-                    if text.strip():
-                        ws.cell(row=current_row, column=1, value=f"Page {page_num + 1}")
-                        ws.cell(row=current_row, column=1).font = Font(bold=True)
-                        current_row += 1
-                        
-                        lines = text.strip().split('\n')
-                        for line in lines[:50]:
-                            if line.strip():
-                                ws.cell(row=current_row, column=1, value=line.strip())
-                                current_row += 1
-                        current_row += 1
-            
+            # If no tables found, still save the workbook with logo and title
+            print("Warning: No tables found, saving logo and title only")
             wb.save(excel_path)
             doc.close()
-            
-            print(f"[✓] Excel file created with OCR/text extraction: {excel_name}")
             
             return send_file(
                 excel_path,
                 as_attachment=True,
                 download_name=excel_name,
-                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                max_age=0
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
         
         # Combine all tables with same structure
@@ -996,48 +750,22 @@ def pdf_to_excel():
         combined_df = combined_df.fillna('')
         
         # Write table data to worksheet starting from current_row
-        # Define border style for professional look
-        thin_border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
-        )
-        
         # Write headers
         for col_idx, col_name in enumerate(combined_df.columns, start=1):
             cell = ws.cell(row=current_row, column=col_idx, value=str(col_name))
             cell.font = Font(bold=True, size=11)
             cell.fill = PatternFill(start_color='D3D3D3', end_color='D3D3D3', fill_type='solid')
             cell.alignment = Alignment(horizontal='center', vertical='center')
-            cell.border = thin_border
         
         current_row += 1
         
-        # Write data rows with smart alignment
+        # Write data rows
         for _, row_data in combined_df.iterrows():
             for col_idx, value in enumerate(row_data, start=1):
                 # Convert value to string if it's not empty
                 cell_value = str(value) if value != '' else ''
                 cell = ws.cell(row=current_row, column=col_idx, value=cell_value)
-                
-                # Smart alignment: numbers right, dates center, text left
-                col_name = combined_df.columns[col_idx - 1].lower()
-                if any(keyword in col_name for keyword in ['date', 'chq', 'no']):
-                    cell.alignment = Alignment(horizontal='center', vertical='center')
-                elif any(keyword in col_name for keyword in ['debit', 'credit', 'balance', 'value', 'amount']):
-                    cell.alignment = Alignment(horizontal='right', vertical='center')
-                    # Format numbers with proper decimal places
-                    try:
-                        if cell_value and cell_value.replace('.', '').replace(',', '').replace('-', '').isdigit():
-                            cell.number_format = '#,##0.00'
-                    except:
-                        pass
-                else:
-                    cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
-                
-                # Add borders to all cells
-                cell.border = thin_border
+                cell.alignment = Alignment(horizontal='center', vertical='center')
             current_row += 1
         
         # Auto-adjust column widths
@@ -1053,25 +781,18 @@ def pdf_to_excel():
             adjusted_width = min(max(max_length + 2, 12), 50)
             ws.column_dimensions[column_letter].width = adjusted_width
         
-        # Save workbook with optimization
-        print("\n[SAVING] Creating Excel file...")
+        # Save workbook
         wb.save(excel_path)
         doc.close()
         
-        file_size_kb = os.path.getsize(excel_path) / 1024
-        print(f"[✓ SUCCESS] Excel file created: {excel_name} ({file_size_kb:.2f} KB)")
-        print(f"  - Logo: {'Yes' if logo_added else 'No'}")
-        print(f"  - Headers: Yes (Layout preserved)")
-        print(f"  - Tables: {len(all_tables)}")
-        print(f"  - Total rows: {len(combined_df)}")
+        print(f"[OK] Excel file created with logo and formatting: {excel_path}")
         print(f"{'='*60}\n")
         
         return send_file(
             excel_path,
             as_attachment=True,
             download_name=excel_name,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            max_age=0  # No caching for fresh download
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
     
     except Exception as e:
@@ -1164,12 +885,11 @@ def pdf_to_excel_OLD_BACKUP():
                 print("Strategy 2: Stream mode (borderless tables)...")
                 tables = camelot.read_pdf(
                     str(pdf_path), 
-                    pages='1-5' if len(doc) > 10 else 'all',  # Limit pages for speed
+                    pages='all', 
                     flavor='stream',
                     edge_tol=50,
                     row_tol=10,
-                    column_tol=10,
-                    suppress_stdout=True  # 30% faster
+                    column_tol=10
                 )
                 if tables and len(tables) > 0:
                     for idx, table in enumerate(tables):
@@ -1607,19 +1327,18 @@ def convert_excel_to_pdf_advanced(excel_path, output_dir):
         return None
 
 def convert_csv_to_excel_api(csv_path, output_dir):
-    """Convert CSV to Excel for API - Optimized for speed"""
+    """Convert CSV to Excel for API"""
     try:
         import pandas as pd
         from openpyxl.styles import Border, Side, Font
         
-        # Read CSV with multiple encoding attempts - optimized order
-        encodings = ['utf-8', 'cp1252', 'latin-1', 'iso-8859-1']
+        # Read CSV with multiple encoding attempts
+        encodings = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
         df = None
         
         for encoding in encodings:
             try:
-                # Optimized: Use low_memory=False for faster reading
-                df = pd.read_csv(csv_path, encoding=encoding, low_memory=False)
+                df = pd.read_csv(csv_path, encoding=encoding)
                 break
             except:
                 continue
@@ -1627,44 +1346,44 @@ def convert_csv_to_excel_api(csv_path, output_dir):
         if df is None:
             raise RuntimeError("Could not read CSV file")
         
-        # Limit rows for very large CSVs (optional safety)
-        if len(df) > 10000:
-            print(f"Warning: Large CSV with {len(df)} rows. Processing first 10000 rows for speed.")
-            df = df.head(10000)
-        
         # Create Excel file
         base_name = os.path.splitext(os.path.basename(csv_path))[0]
         excel_path = os.path.join(output_dir, f"{base_name}.xlsx")
         
-        # Optimized: Use xlsxwriter engine (3x faster than openpyxl for writing)
-        with pd.ExcelWriter(excel_path, engine='xlsxwriter') as writer:
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
             df.to_excel(writer, sheet_name='Sheet1', index=False)
             
-            workbook = writer.book
             worksheet = writer.sheets['Sheet1']
             
-            # Optimized: Simple formatting (faster than cell-by-cell)
-            # Add header format
-            header_format = workbook.add_format({
-                'bold': True,
-                'border': 1,
-                'bg_color': '#F0F0F0'
-            })
+            # Auto-adjust column widths
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
             
-            # Add cell format with borders
-            cell_format = workbook.add_format({'border': 1})
+            # Add borders
+            thin_border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
             
-            # Apply formats to ranges (much faster than cell-by-cell)
-            for col_num, col_name in enumerate(df.columns):
-                # Auto-adjust column width (optimized calculation)
-                max_len = max(
-                    df[col_name].astype(str).str.len().max(),
-                    len(str(col_name))
-                )
-                worksheet.set_column(col_num, col_num, min(max_len + 2, 50))
-                
-                # Format header
-                worksheet.write(0, col_num, col_name, header_format)
+            for row in worksheet.iter_rows(min_row=1, max_row=len(df)+1, 
+                                          min_col=1, max_col=len(df.columns)):
+                for cell in row:
+                    cell.border = thin_border
+            
+            # Bold headers
+            for cell in worksheet[1]:
+                cell.font = Font(bold=True)
         
         return excel_path
     except Exception as e:
@@ -1762,77 +1481,84 @@ def excel_to_pdf():
                 raise RuntimeError("CSV to Excel conversion failed")
             print(f"[OK] CSV converted to Excel: {os.path.basename(excel_path)}\n")
         
-        # Use LibreOffice for EXACT Excel layout preservation (like iLovePDF)
-        # This preserves logos, images, formatting, and layout EXACTLY
+        # Try professional Excel COM conversion first (iLovePDF quality)
         pdf_path = None
-        print("Step 2: Converting to PDF with LibreOffice (preserves exact Excel layout)...")
+        print("Step 2: Converting to PDF with Microsoft Excel COM...")
+        pdf_path = convert_excel_to_pdf_professional_api(excel_path, tmpdir)
         
-        # Detect LibreOffice executable based on platform
-        if sys.platform == 'win32':
-            soffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
-            # Kill existing LibreOffice processes (Windows only)
-            try:
-                subprocess.run(['taskkill', '/F', '/IM', 'soffice.exe', '/T'], 
-                              capture_output=True, timeout=5, encoding='utf-8', errors='replace')
-                subprocess.run(['taskkill', '/F', '/IM', 'soffice.bin', '/T'], 
-                              capture_output=True, timeout=5, encoding='utf-8', errors='replace')
-                import time
-                time.sleep(1)
-            except:
-                pass
-        else:
-            # Linux/Unix - use system LibreOffice
-            soffice_exe = shutil.which('soffice') or 'soffice'
-        
-        # Convert with LibreOffice - EXACT Excel rendering
-        # This is what iLovePDF uses - native Excel to PDF conversion
-        cmd = [
-            soffice_exe,
-            '--headless',
-            '--invisible',
-            '--nodefault',
-            '--nofirststartwizard',
-            '--nolockcheck',
-            '--nologo',
-            '--norestore',
-            '--convert-to', 'pdf:calc_pdf_Export',
-            '--outdir', tmpdir,
-            excel_path
-        ]
-        
-        print(f"Running LibreOffice: {' '.join(cmd)}")
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=120,  # Increased timeout for complex files
-            encoding='utf-8',
-            errors='replace'
-        )
-        
-        if result.returncode != 0:
-            print(f"LibreOffice error: {result.stderr}")
-            raise RuntimeError(f"LibreOffice conversion failed: {result.stderr}")
-        
-        # Find the output PDF
-        base_name = os.path.splitext(os.path.basename(excel_path))[0]
-        pdf_path = os.path.join(tmpdir, f"{base_name}.pdf")
-        
-        if not os.path.exists(pdf_path):
-            possible_paths = [
-                os.path.join(tmpdir, f"{base_name}.pdf"),
-                os.path.join(tmpdir, f"{filename.rsplit('.', 1)[0]}.pdf")
-            ]
-            for path in possible_paths:
-                if os.path.exists(path):
-                    pdf_path = path
-                    break
-        
+        # Fallback to LibreOffice if COM fails
         if not pdf_path or not os.path.exists(pdf_path):
-            raise RuntimeError("PDF file was not created by LibreOffice")
-        
-        print(f"[OK] PDF created with EXACT Excel layout: {pdf_path}")
-        print(f"{'='*60}\n")
+            print(f"\n{'='*60}")
+            print(f"EXCEL TO PDF CONVERSION - LibreOffice (Fallback)")
+            print(f"Input: {excel_path}")
+            print(f"{'='*60}\n")
+            
+            # Detect LibreOffice executable based on platform
+            if sys.platform == 'win32':
+                soffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
+                # Kill existing LibreOffice processes (Windows only)
+                try:
+                    subprocess.run(['taskkill', '/F', '/IM', 'soffice.exe', '/T'], 
+                                  capture_output=True, timeout=5, encoding='utf-8', errors='replace')
+                    subprocess.run(['taskkill', '/F', '/IM', 'soffice.bin', '/T'], 
+                                  capture_output=True, timeout=5, encoding='utf-8', errors='replace')
+                    import time
+                    time.sleep(1)
+                except:
+                    pass
+            else:
+                # Linux/Unix - use system LibreOffice
+                soffice_exe = shutil.which('soffice') or 'soffice'
+            
+            # Convert with optimal settings - preserve images and formatting
+            # calc_pdf_Export preserves all images, logos, and formatting
+            cmd = [
+                soffice_exe,
+                '--headless',
+                '--invisible',
+                '--nodefault',
+                '--nofirststartwizard',
+                '--nolockcheck',
+                '--nologo',
+                '--norestore',
+                '--convert-to', 'pdf:calc_pdf_Export',
+                '--outdir', tmpdir,
+                excel_path
+            ]
+            
+            print(f"Running: {' '.join(cmd)}")
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                encoding='utf-8',
+                errors='replace'
+            )
+            
+            if result.returncode != 0:
+                print(f"LibreOffice error: {result.stderr}")
+                raise RuntimeError(f"LibreOffice conversion failed: {result.stderr}")
+            
+            # Find the output PDF
+            base_name = os.path.splitext(os.path.basename(excel_path))[0]
+            pdf_path = os.path.join(tmpdir, f"{base_name}.pdf")
+            
+            if not os.path.exists(pdf_path):
+                possible_paths = [
+                    os.path.join(tmpdir, f"{base_name}.pdf"),
+                    os.path.join(tmpdir, f"{filename.rsplit('.', 1)[0]}.pdf")
+                ]
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        pdf_path = path
+                        break
+            
+            if not pdf_path or not os.path.exists(pdf_path):
+                raise RuntimeError("PDF file was not created")
+            
+            print(f"[OK] PDF file created: {pdf_path}")
+            print(f"{'='*60}\n")
         
         # Send file
         pdf_name = Path(filename).stem + '.pdf'
@@ -1848,6 +1574,103 @@ def excel_to_pdf():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+    finally:
+        # Cleanup
+        if tmpdir and os.path.exists(tmpdir):
+            try:
+                import time
+                time.sleep(1)
+                shutil.rmtree(tmpdir, ignore_errors=True)
+            except:
+                pass
+
+@app.route('/api/convert/excel-to-bank-statement', methods=['POST', 'OPTIONS'])
+def excel_to_bank_statement():
+    """Convert Excel to Bank Statement PDF with logo and professional formatting"""
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    tmpdir = None
+    try:
+        print(f"\n{'='*60}")
+        print(f"EXCEL TO BANK STATEMENT - Request received")
+        print(f"Request files: {list(request.files.keys())}")
+        print(f"{'='*60}\n")
+        
+        if 'file' not in request.files:
+            print("ERROR: No file in request")
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        print(f"File received: {file.filename}")
+        
+        if file.filename == '':
+            print("ERROR: Empty filename")
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not allowed_file(file.filename, {'xlsx', 'xls'}):
+            print(f"ERROR: Invalid file type: {file.filename}")
+            return jsonify({'error': 'Only Excel (.xlsx, .xls) files are allowed'}), 400
+        
+        # Create temp directory
+        tmpdir = tempfile.mkdtemp()
+        
+        # Save uploaded Excel file
+        filename = secure_filename(file.filename)
+        excel_path = os.path.join(tmpdir, filename)
+        file.save(excel_path)
+        
+        # Check if logo was uploaded
+        logo_path = None
+        if 'logo' in request.files:
+            logo_file = request.files['logo']
+            if logo_file and logo_file.filename:
+                logo_filename = secure_filename(logo_file.filename)
+                logo_path = os.path.join(tmpdir, logo_filename)
+                logo_file.save(logo_path)
+                print(f"[OK] Logo uploaded: {logo_filename}")
+        
+        print(f"\n{'='*60}")
+        print(f"EXCEL TO BANK STATEMENT PDF CONVERSION")
+        print(f"Input: {filename}")
+        print(f"Logo: {logo_path if logo_path else 'None'}")
+        print(f"{'='*60}\n")
+        
+        # Import the bank statement converter
+        # Add current directory to path if not already there
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if current_dir not in sys.path:
+            sys.path.insert(0, current_dir)
+        
+        from excel_to_bank_statement_pdf import convert_excel_to_bank_statement_pdf
+        
+        # Convert to bank statement PDF
+        pdf_path = convert_excel_to_bank_statement_pdf(excel_path, tmpdir, logo_path=logo_path)
+        
+        if not pdf_path or not os.path.exists(pdf_path):
+            raise RuntimeError("PDF file was not created")
+        
+        # Send file
+        pdf_name = Path(filename).stem + '_statement.pdf'
+        print(f"[OK] Sending PDF: {pdf_name}")
+        return send_file(
+            pdf_path,
+            as_attachment=True,
+            download_name=pdf_name,
+            mimetype='application/pdf'
+        )
+    
+    except Exception as e:
+        error_msg = str(e)
+        print(f"\n{'='*60}")
+        print(f"ERROR IN EXCEL TO BANK STATEMENT CONVERSION")
+        print(f"Error: {error_msg}")
+        print(f"{'='*60}")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        return jsonify({'error': error_msg}), 500
     finally:
         # Cleanup
         if tmpdir and os.path.exists(tmpdir):
@@ -2446,18 +2269,10 @@ def index():
         }
     })
 
-@app.route('/health', methods=['GET', 'HEAD', 'OPTIONS'])
+@app.route('/health', methods=['GET', 'HEAD'])
 def health_check():
     """Health check endpoint for Render"""
-    if request.method == 'OPTIONS':
-        return '', 204
     return jsonify({'status': 'healthy'}), 200
-
-# Global OPTIONS handler for all API routes
-@app.route('/api/<path:path>', methods=['OPTIONS'])
-def handle_options(path):
-    """Handle OPTIONS requests for CORS preflight"""
-    return '', 204
 
 @app.route('/api/info', methods=['GET'])
 def api_info():

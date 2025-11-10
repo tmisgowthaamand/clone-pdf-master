@@ -1,17 +1,21 @@
-import { useState } from 'react';
-import { API_ENDPOINTS } from '@/config/api';
+import { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/FileUpload";
 import { FileList } from "@/components/FileList";
-import { ArrowLeft, Download, Sheet } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Download, Sheet, Upload, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
-import { useConversion } from "@/hooks/useConversion";
+import { API_ENDPOINTS } from "@/config/api";
 
 const ExcelToPDF = () => {
+  const { toast } = useToast();
   const [files, setFiles] = useState<File[]>([]);
-  const { convert, isConverting } = useConversion();
+  const [isConverting, setIsConverting] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const handleFilesSelected = (newFiles: File[]) => {
     setFiles(newFiles);
@@ -21,18 +25,68 @@ const ExcelToPDF = () => {
     setFiles(files.filter((_, i) => i !== index));
   };
 
-  const handlePythonConversion = async () => {
-    if (files.length === 0) return;
-    const file = files[0];
-
-    await convert(file, {
-      endpoint: API_ENDPOINTS.EXCEL_TO_PDF,
-      outputExtension: 'pdf',
-      mimeType: 'application/pdf',
-      successMessage: 'Excel/CSV converted to PDF successfully!',
-    });
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setLogoPreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+      toast({
+        title: "Logo Uploaded",
+        description: "Bank logo added successfully",
+      });
+    }
   };
 
+  const handleBankStatementConversion = async () => {
+    if (files.length === 0) return;
+    const file = files[0];
+    setIsConverting(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (logoFile) {
+        formData.append('logo', logoFile);
+      }
+
+      const response = await fetch(API_ENDPOINTS.EXCEL_TO_BANK_STATEMENT, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Conversion failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name.replace(/\.(xls|xlsx)$/i, '_statement.pdf');
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success!",
+        description: "Bank statement PDF created successfully!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Conversion Failed",
+        description: error.message || "Failed to create bank statement PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConverting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -83,8 +137,37 @@ const ExcelToPDF = () => {
               <>
                 <FileList files={files} onRemove={handleRemove} />
                 
+                {/* Bank Logo Upload */}
+                <Card className="p-4 bg-muted/50">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    Bank Logo (Optional)
+                  </h3>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    onClick={() => logoInputRef.current?.click()}
+                    variant="outline"
+                    className="w-full mb-3"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Bank Logo
+                  </Button>
+                  {logoPreview && (
+                    <div className="mt-3 p-3 bg-white rounded-lg border">
+                      <p className="text-sm font-medium mb-2">Logo Preview:</p>
+                      <img src={logoPreview} alt="Bank Logo" className="max-h-20 mx-auto" />
+                    </div>
+                  )}
+                </Card>
+                
                 <Button
-                  onClick={handlePythonConversion}
+                  onClick={handleBankStatementConversion}
                   disabled={isConverting}
                   className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 h-12 text-lg"
                 >
@@ -93,7 +176,7 @@ const ExcelToPDF = () => {
                   ) : (
                     <>
                       <Download className="w-5 h-5 mr-2" />
-                      Convert to PDF
+                      Generate Bank Statement PDF
                     </>
                   )}
                 </Button>
@@ -111,7 +194,7 @@ const ExcelToPDF = () => {
                 Features
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                {["📊 Convert Excel/CSV to PDF", "🎯 Perfect formatting", "⚡ Fast Python backend", "🔒 Secure local processing", "💾 Supports .xls, .xlsx, .csv", "📋 Tables preserved"].map((feature, index) => (
+                {["📊 Convert Excel/CSV to PDF", "🏦 Bank statement mode", "🎯 Perfect formatting", "⚡ Fast Python backend", "🔒 Secure local processing", "💾 Supports .xls, .xlsx, .csv", "📋 Tables preserved", "🏢 Custom logo support"].map((feature, index) => (
                   <div 
                     key={index} 
                     className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-background/50 hover:bg-background transition-colors duration-200 lg:hover:scale-105 lg:hover:shadow-md group/item"
