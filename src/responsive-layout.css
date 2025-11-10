@@ -404,32 +404,29 @@ textarea {
   }
 }
 
-/* Mobile: max-width 480px */
+/* Mobile: max-width 480px - MAINTAIN DESKTOP ALIGNMENT */
 @media (max-width: 480px) {
-  html {
-    font-size: 15px;
-  }
-
   :root {
     --container-pad: 12px;
     --gutter: 12px;
-    --space-sm: 10px;
-    --space-md: 16px;
-    --space-lg: 24px;
   }
 
   .container {
     padding: 0 12px;
   }
 
+  /* Grid adapts to single column but maintains center alignment */
   .grid--2,
   .grid--3,
   .grid--4 {
     grid-template-columns: 1fr;
+    justify-items: center; /* Keep items centered */
   }
 
+  /* Maintain row alignment, just stack vertically */
   .row {
     flex-direction: column;
+    align-items: stretch; /* Maintain full width alignment */
   }
 
   .col,
@@ -442,35 +439,62 @@ textarea {
     display: none !important;
   }
 
-  button, .btn {
+  /* Buttons maintain same style, just full width for touch */
+  button:not(.btn--inline), 
+  .btn:not(.btn--inline) {
     width: 100%;
     justify-content: center;
   }
 
+  /* Keep button sizes consistent */
   .btn--sm {
     padding: 8px 12px;
+    min-height: 36px;
   }
 
   .btn--lg {
     padding: 12px 16px;
+    min-height: 52px;
   }
 
+  /* Tables maintain structure, just scroll */
   table {
-    font-size: 0.85rem;
+    font-size: 0.9rem; /* Slightly smaller but readable */
   }
 
   th, td {
-    padding: 6px 8px;
-    font-size: 0.85rem;
+    padding: 8px 10px; /* Maintain spacing */
   }
 
+  /* Cards maintain padding ratio */
   .card {
-    padding: var(--space-sm);
+    padding: var(--space-md); /* Keep consistent padding */
   }
 
+  /* Upload area maintains proportions */
   .upload-area {
     padding: var(--space-md);
-    min-height: 150px;
+    min-height: 180px; /* Maintain height ratio */
+  }
+
+  /* Ensure all content stays centered */
+  .center,
+  .v-center,
+  .h-center {
+    display: flex; /* Maintain flex behavior */
+  }
+
+  /* Text alignment stays the same */
+  .text-center {
+    text-align: center;
+  }
+
+  .text-left {
+    text-align: left;
+  }
+
+  .text-right {
+    text-align: right;
   }
 }
 
@@ -565,6 +589,108 @@ h6 { font-size: clamp(0.95rem, 1.5vw, 1.1rem); }
 p {
   margin: 0 0 var(--space-md) 0;
   line-height: 1.6;
+}
+
+/* ========================================
+   ALIGNMENT CONSISTENCY - ALL DEVICES
+   ======================================== */
+
+/* Ensure containers always center content */
+.container,
+.container-fluid {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Prevent content from touching edges */
+body > * {
+  box-sizing: border-box;
+}
+
+/* Maintain consistent alignment for all flex containers */
+.row,
+.grid {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Cards always maintain center alignment in grids */
+.grid > .card,
+.grid > * {
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+/* Buttons in containers stay centered */
+.container .btn,
+.container button,
+.card .btn,
+.card button {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Forms maintain alignment */
+.form-group {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Upload areas stay centered */
+.upload-area {
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Tables in responsive wrapper stay aligned */
+.table-responsive {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Embedded content maintains aspect ratio and alignment */
+.responsive-embed {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Headings maintain text alignment */
+h1, h2, h3, h4, h5, h6 {
+  text-align: inherit; /* Inherit from parent */
+}
+
+/* Paragraphs maintain alignment */
+p {
+  text-align: inherit;
+}
+
+/* Lists maintain alignment */
+ul, ol {
+  padding-left: 1.5rem;
+  margin-left: 0;
+}
+
+/* Images stay within bounds */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Prevent layout shift from scrollbars */
+html {
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+/* Smooth scrolling for all devices */
+* {
+  scroll-behavior: smooth;
 }
 
 /* ========================================
