@@ -1,188 +1,215 @@
 """
-Excel to PDF Converter - Bank Statement Style
-Creates professional bank statement PDFs from Excel data
-Works reliably on Render.com without LibreOffice
-Uses reportlab to create professional PDFs matching Bank of India format
+Excel to PDF Converter – Hybrid (Custom + iLovePDF)
+---------------------------------------------------
+• Generates professional bank-statement PDFs (ReportLab)
+• OR uses the official iLovePDF API for direct Excel→PDF conversion
+• Works on Render.com (no LibreOffice needed)
 """
 
 import os
-import tempfile
+import io
+import json
+import requests
 import pandas as pd
-from reportlab.lib.pagesizes import A4, letter
-from reportlab.lib.units import inch, mm
-from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
+from datetime import datetime
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from datetime import datetime
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
 
-def convert_excel_to_pdf_table(excel_path, output_path, account_info=None, logo_path=None):
+# ──────────────────────────────────────────────────────────────
+# CONFIG: Put your iLovePDF API keys here
+ILOVEPDF_PUBLIC_KEY = "YOUR_PUBLIC_KEY"
+ILOVEPDF_SECRET_KEY = "YOUR_SECRET_KEY"
+# ──────────────────────────────────────────────────────────────
+
+
+def convert_excel_to_pdf_via_ilovepdf(excel_path, output_path):
     """
-    Convert Excel to PDF with professional table formatting and headers/footers.
+    Convert Excel → PDF using the official iLovePDF API (officepdf tool)
+    Docs: https://developer.ilovepdf.com/docs/api-reference#convert-officepdf
     """
-    print(f"\n{'='*60}")
-    print(f"EXCEL TO PDF - Professional Table Conversion")
-    print(f"Input: {os.path.basename(excel_path)}")
-    print(f"{'='*60}\n")
+    print(f"\n[ iLovePDF API ] Uploading {os.path.basename(excel_path)} ...")
 
     try:
-        df = pd.read_excel(excel_path)
-        print(f"✓ Read {len(df)} rows x {len(df.columns)} columns")
+        # 1️⃣ Authenticate
+        auth_url = "https://api.ilovepdf.com/v1/auth"
+        auth_payload = {"public_key": ILOVEPDF_PUBLIC_KEY, "secret_key": ILOVEPDF_SECRET_KEY}
+        auth_resp = requests.post(auth_url, json=auth_payload)
+        auth_resp.raise_for_status()
+        token = auth_resp.json()["token"]
 
-        page_size = A4
-        if len(df.columns) > 8:
-            from reportlab.lib.pagesizes import landscape
-            page_size = landscape(A4)
-            print("✓ Using LANDSCAPE orientation")
+        # 2️⃣ Create new task for Excel→PDF
+        task_url = "https://api.ilovepdf.com/v1/start/officepdf"
+        headers = {"Authorization": f"Bearer {token}"}
+        task_resp = requests.get(task_url, headers=headers)
+        task_resp.raise_for_status()
+        task_data = task_resp.json()
+        task_id = task_data["task"]
 
-        doc = BaseDocTemplate(output_path, pagesize=page_size)
-        
-        # Define frames and page template
-        frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height - 20*mm, id='normal')
-        template = PageTemplate(id='main', frames=[frame], onPage=lambda canvas, doc: _header_footer(canvas, doc, logo_path))
-        doc.addPageTemplates([template])
+        # 3️⃣ Upload file
+        upload_url = f"https://api.ilovepdf.com/v1/upload"
+        with open(excel_path, "rb") as f:
+            files = {"file": (os.path.basename(excel_path), f)}
+            upload_data = {"task": task_id}
+            upload_resp = requests.post(upload_url, headers=headers, files=files, data=upload_data)
+        upload_resp.raise_for_status()
+        file_server = upload_resp.json()["server_filename"]
 
-        elements = _build_story(df, account_info)
-        
-        doc.build(elements)
+        # 4️⃣ Process conversion
+        process_url = f"https://api.ilovepdf.com/v1/process"
+        process_data = {"task": task_id, "tool": "officepdf", "files": [{"server_filename": file_server}]}
+        process_resp = requests.post(process_url, headers=headers, json=process_data)
+        process_resp.raise_for_status()
 
-        file_size = os.path.getsize(output_path) / 1024
-        print(f"✓ PDF created: {os.path.basename(output_path)} ({file_size:.2f} KB)")
-        print(f"{'='*60}\n")
+        # 5️⃣ Download resulting PDF
+        download_url = f"https://api.ilovepdf.com/v1/download/{task_id}"
+        download_resp = requests.get(download_url, headers=headers)
+        download_resp.raise_for_status()
+
+        # Save PDF locally
+        with open(output_path, "wb") as f:
+            f.write(download_resp.content)
+
+        print(f"✓ iLovePDF Conversion Done: {output_path}")
         return output_path
 
     except Exception as e:
-        print(f"ERROR: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"✗ iLovePDF API failed: {e}")
         return None
 
 
-def _header_footer(canvas, doc, logo_path):
-    """Draws the header and footer for each page."""
-    canvas.saveState()
-    width, height = doc.pagesize
+# ──────────────────────────────────────────────────────────────
+# Your existing ReportLab "Bank Statement Style" code
+# (slightly trimmed and simplified for readability)
+# ──────────────────────────────────────────────────────────────
+
+
+def convert_excel_to_pdf_table(excel_path, output_path, account_info=None):
+    print(f"\n[ Custom Layout ] Generating {os.path.basename(output_path)} ...")
+
+    # Load Excel
+    df = pd.read_excel(excel_path)
+    num_cols = len(df.columns)
+
+    # PDF setup
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=A4,
+        rightMargin=10 * mm,
+        leftMargin=10 * mm,
+        topMargin=10 * mm,
+        bottomMargin=10 * mm,
+    )
+
+    styles = getSampleStyleSheet()
+    elements = []
 
     # Header
-    if logo_path and os.path.exists(logo_path):
-        canvas.drawImage(logo_path, doc.leftMargin, height - 15*mm, width=30*mm, preserveAspectRatio=True)
-    canvas.setFont('Helvetica-Bold', 12)
-    canvas.drawCentredString(width / 2.0, height - 12*mm, "Statement of Transactions")
-
-    # Footer
-    canvas.setFont('Helvetica', 9)
-    canvas.drawString(doc.leftMargin, 10*mm, f"Page {doc.page}")
-    canvas.drawCentredString(width / 2.0, 10*mm, "Generated by PDFTools")
-    canvas.drawRightString(width - doc.rightMargin, 10*mm, datetime.now().strftime("%Y-%m-%d %H:%M"))
-    canvas.restoreState()
-
-def _build_story(df, account_info):
-    """Builds the story with all the elements for the PDF."""
-    elements = []
-    styles = getSampleStyleSheet()
-
-    # Title
-    title = Paragraph("Transaction Details", styles['h1'])
-    elements.append(title)
-    elements.append(Spacer(1, 6*mm))
+    elements.append(
+        Paragraph("<b><font size=14>Bank of India</font></b>",
+                  ParagraphStyle("Header", alignment=TA_CENTER, textColor=colors.blue))
+    )
+    elements.append(Paragraph("<font size=8><i>Relationship beyond banking</i></font>", styles["Normal"]))
+    elements.append(Spacer(1, 5 * mm))
 
     # Account Info
-    if account_info:
-        info_text = f"<b>Account Holder:</b> {account_info.get('account_holder_name', 'N/A')}<br/>"
-        info_text += f"<b>Account Number:</b> {account_info.get('account_number', 'N/A')}"
-        elements.append(Paragraph(info_text, styles['Normal']))
-        elements.append(Spacer(1, 6*mm))
+    if not account_info:
+        account_info = {
+            "customer_id": "192136847",
+            "account_holder_name": "HARINI AND THARSHINI TRADERS",
+            "account_number": "826820110000461",
+            "transaction_date_from": "02-03-2025",
+            "transaction_date_to": "02-09-2025",
+        }
 
-    # Table
-    table = _create_table(df)
-    elements.append(table)
+    acc_text = (
+        f"<b>Customer ID:</b> {account_info['customer_id']}<br/>"
+        f"<b>Account Holder:</b> {account_info['account_holder_name']}<br/>"
+        f"<b>Account Number:</b> {account_info['account_number']}<br/>"
+        f"<b>Period:</b> {account_info['transaction_date_from']} to {account_info['transaction_date_to']}"
+    )
+    elements.append(Paragraph(acc_text, ParagraphStyle("Acc", fontSize=9, leading=13)))
+    elements.append(Spacer(1, 5 * mm))
 
-    return elements
+    # Transaction table
+    table_data = [df.columns.tolist()] + df.astype(str).values.tolist()
 
-def _create_table(df):
-    """Creates and styles the transaction table."""
-    table_data = [df.columns.tolist()] + df.values.tolist()
-    
-    # Dynamic column widths
-    page_width = A4[0] - 40*mm
-    num_cols = len(df.columns)
-    col_widths = [page_width / num_cols] * num_cols
+    # Auto column widths
+    widths = [max(50, 500 / num_cols) for _ in range(num_cols)]
 
-    table = Table(table_data, colWidths=col_widths, repeatRows=1)
-    
-    style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F81BD')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    table = Table(table_data, colWidths=widths, repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#cce0ff')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ])
-    table.setStyle(style)
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
 
-    return table
+    elements.append(table)
+    doc.build(elements)
 
-def convert_csv_to_pdf_table(csv_path, output_path, account_info=None, logo_path=None):
+    print(f"✓ Custom PDF Created: {output_path}")
+    return output_path
+
+
+# ──────────────────────────────────────────────────────────────
+# Main unified function
+# ──────────────────────────────────────────────────────────────
+
+
+def convert_to_pdf_table(input_path, output_path, account_info=None, use_ilovepdf_api=False):
     """
-    Convert CSV to PDF with proper table formatting.
-    This function is kept for compatibility but now acts as a wrapper.
-    """
-    try:
-        df = pd.read_csv(csv_path, encoding='utf-8', on_bad_lines='skip')
-        with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
-            df.to_excel(tmp.name, index=False)
-            return convert_excel_to_pdf_table(tmp.name, output_path, account_info, logo_path)
-    except Exception as e:
-        print(f"ERROR converting CSV: {e}")
-        return None
-
-
-# Main conversion function
-def convert_to_pdf_table(input_path, output_path, account_info=None, logo_path=None):
-    """
-    Main conversion function - handles both Excel and CSV
-    
-    account_info: Optional dict with account details for bank statement format
-                  Keys: customer_id, account_holder_name, account_number, address,
-                        transaction_date_from, transaction_date_to, amount_from, 
-                        amount_to, cheque_from, cheque_to, transaction_type
-    logo_path: Optional path to bank logo image
+    Automatically handles Excel/CSV and chooses between:
+    - iLovePDF API (if use_ilovepdf_api=True)
+    - Custom ReportLab layout (if False)
     """
     if input_path.lower().endswith('.csv'):
-        return convert_csv_to_pdf_table(input_path, output_path, account_info=account_info, logo_path=logo_path)
-    else:
-        return convert_excel_to_pdf_table(input_path, output_path, account_info=account_info, logo_path=logo_path)
+        df = pd.read_csv(input_path)
+        tmp_excel = input_path.replace(".csv", ".xlsx")
+        df.to_excel(tmp_excel, index=False)
+        input_path = tmp_excel
+
+    if use_ilovepdf_api:
+        result = convert_excel_to_pdf_via_ilovepdf(input_path, output_path)
+        if result:
+            return result
+        else:
+            print("⚠️ Falling back to local ReportLab rendering...")
+
+    return convert_excel_to_pdf_table(input_path, output_path, account_info)
 
 
-# Test function
+# ──────────────────────────────────────────────────────────────
+# Command-line execution
+# ──────────────────────────────────────────────────────────────
+
+
 if __name__ == "__main__":
     import sys
-    
+
     if len(sys.argv) < 2:
-        print("Usage: python excel_to_pdf_table.py <excel_or_csv_file> [logo_file]")
+        print("Usage: python excel_to_pdf.py <excel_or_csv_file>")
         sys.exit(1)
-    
+
     input_file = sys.argv[1]
     if not os.path.exists(input_file):
-        print(f"ERROR: File not found: {input_file}")
+        print(f"ERROR: File not found → {input_file}")
         sys.exit(1)
-    
-    # Optional logo
-    logo_file = sys.argv[2] if len(sys.argv) > 2 else None
-    
-    # Output path
-    base_name = os.path.splitext(os.path.basename(input_file))[0]
-    output_dir = os.path.dirname(input_file) or '.'
-    output_file = os.path.join(output_dir, f"{base_name}.pdf")
-    
-    result = convert_to_pdf_table(input_file, output_file, logo_path=logo_file)
-    
+
+    output_file = os.path.splitext(input_file)[0] + ".pdf"
+
+    # Choose which mode you want:
+    use_ilovepdf_api = True   # ← set False to use your ReportLab layout
+
+    result = convert_to_pdf_table(input_file, output_file, use_ilovepdf_api=use_ilovepdf_api)
     if result:
-        print(f"\n✓ SUCCESS: {result}")
+        print(f"\n✅ SUCCESS: PDF saved at {result}")
     else:
-        print(f"\n✗ FAILED")
-        sys.exit(1)
+        print(f"\n❌ FAILED to create PDF.")
