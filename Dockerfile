@@ -38,6 +38,9 @@ COPY python-converter/ ./python-converter/
 # Set working directory to python-converter
 WORKDIR /app/python-converter
 
+# Make start script executable
+RUN chmod +x start.sh
+
 # Expose port
 EXPOSE 10000
 
@@ -46,24 +49,10 @@ ENV PYTHONUNBUFFERED=1
 ENV FLASK_ENV=production
 ENV PORT=10000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:10000/health || exit 1
+# Health check - increased timeouts for Render
+HEALTHCHECK --interval=60s --timeout=30s --start-period=120s --retries=5 \
+    CMD curl -f http://localhost:${PORT:-10000}/health || exit 1
 
-# Run the application
+# Run the application using startup script
 # Optimized for Render free tier (512MB RAM limit)
-# Use gunicorn with optimized settings for stability and memory efficiency
-CMD gunicorn app:app \
-    --bind 0.0.0.0:${PORT:-10000} \
-    --workers 1 \
-    --threads 2 \
-    --timeout 300 \
-    --worker-class sync \
-    --worker-tmp-dir /dev/shm \
-    --max-requests 100 \
-    --max-requests-jitter 10 \
-    --access-logfile - \
-    --error-logfile - \
-    --log-level debug \
-    --graceful-timeout 120 \
-    --keep-alive 5
+CMD ["./start.sh"]

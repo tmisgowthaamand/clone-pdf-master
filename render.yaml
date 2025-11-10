@@ -16,12 +16,11 @@ services:
       - key: ALLOWED_ORIGINS
         value: "https://pdf-tools-phi.vercel.app,http://localhost:5173,http://localhost:3000"
       - key: MAX_CONTENT_LENGTH
-        value: "104857600"
-      - key: GUNICORN_CMD_ARGS
-        value: "--timeout 600 --workers 1 --threads 1 --worker-class sync --preload"
+        value: "52428800"
+      - key: WEB_CONCURRENCY
+        value: 1
     healthCheckPath: /health
     autoDeploy: true
-    buildCommand: echo "Building with Docker..."
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 300 --worker-class sync --max-requests 100 --max-requests-jitter 10 --access-logfile - --error-logfile - --log-level debug --graceful-timeout 120 --keep-alive 5
-    # Increase timeouts for free tier cold starts
-    initialDelaySeconds: 90
+    # Increase timeouts for free tier cold starts and health checks
+    initialDelaySeconds: 120
+    # Remove startCommand - let Dockerfile CMD handle it
