@@ -42,39 +42,51 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)  # For session management
 
 # Configure CORS to allow frontend access
-ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', '*').split(',')
-# Add Vercel frontend domain explicitly
-if ALLOWED_ORIGINS == ['*']:
+ALLOWED_ORIGINS_STR = os.environ.get('ALLOWED_ORIGINS', '*')
+if ALLOWED_ORIGINS_STR == '*':
+    # Default allowed origins for development
     ALLOWED_ORIGINS = [
         'http://localhost:5173',
         'http://localhost:3000',
-        'https://pdf-tools-phi.vercel.app',
-        'https://*.vercel.app'
+        'https://pdf-tools-phi.vercel.app'
     ]
+else:
+    # Parse from environment variable
+    ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(',')]
 
-CORS(app, resources={
-    r"/api/*": {
-        "origins": ALLOWED_ORIGINS,
-        "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-        "allow_headers": ["Content-Type", "Authorization", "Accept"],
-        "supports_credentials": True,
-        "expose_headers": ["Content-Disposition"]
-    }
-})
+print(f"CORS Allowed Origins: {ALLOWED_ORIGINS}")
+
+# Configure CORS with proper settings
+CORS(app, 
+     resources={r"/api/*": {"origins": "*"}},
+     supports_credentials=False,
+     allow_headers=["Content-Type", "Authorization", "Accept"],
+     methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+     expose_headers=["Content-Disposition"])
 
 # Add CORS headers to all responses
 @app.after_request
 def after_request(response):
     origin = request.headers.get('Origin')
-    if origin:
-        # Check if origin is allowed
-        if '*' in ALLOWED_ORIGINS or origin in ALLOWED_ORIGINS or any(origin.endswith(o.replace('https://*.', '.')) for o in ALLOWED_ORIGINS if '*' in o):
-            response.headers['Access-Control-Allow-Origin'] = origin
-            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept'
-            response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition'
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
+    # Allow all origins for API routes (more permissive for debugging)
+    response.headers['Access-Control-Allow-Origin'] = origin if origin else '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
+    response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition'
+    response.headers['Access-Control-Max-Age'] = '3600'
     return response
+
+# Handle OPTIONS requests explicitly
+@app.before_request
+def handle_preflight():
+    if request.method == 'OPTIONS':
+        response = app.make_default_options_response()
+        origin = request.headers.get('Origin')
+        response.headers['Access-Control-Allow-Origin'] = origin if origin else '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
+        response.headers['Access-Control-Max-Age'] = '3600'
+        return response
 
 # Add LibreOffice to PATH (cross-platform)
 if sys.platform == 'win32':
