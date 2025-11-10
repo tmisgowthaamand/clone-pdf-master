@@ -19,9 +19,9 @@ export async function fetchWithRetry(
 ): Promise<Response> {
   const {
     maxRetries = 5,
-    retryDelay = 10000, // 10 seconds for cold starts
+    retryDelay = 15000, // 15 seconds for cold starts
     onRetry,
-    timeout = 120000, // 2 minutes timeout
+    timeout = 180000, // 3 minutes timeout for large PDFs
   } = retryOptions;
 
   // Ensure CORS mode is set
@@ -46,11 +46,12 @@ export async function fetchWithRetry(
 
       clearTimeout(timeoutId);
 
-      // Handle 502 Bad Gateway (backend sleeping)
+      // Handle 502 Bad Gateway (backend sleeping or crashed)
       if (response.status === 502 && attempt < maxRetries) {
         if (onRetry) {
           onRetry(attempt, maxRetries);
         }
+        console.log(`Retrying after 502 error (attempt ${attempt}/${maxRetries})...`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
         continue; // Retry
       }
@@ -60,6 +61,17 @@ export async function fetchWithRetry(
         if (onRetry) {
           onRetry(attempt, maxRetries);
         }
+        console.log(`Retrying after 504 error (attempt ${attempt}/${maxRetries})...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        continue; // Retry
+      }
+
+      // Handle 503 Service Unavailable (backend overloaded)
+      if (response.status === 503 && attempt < maxRetries) {
+        if (onRetry) {
+          onRetry(attempt, maxRetries);
+        }
+        console.log(`Retrying after 503 error (attempt ${attempt}/${maxRetries})...`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
         continue; // Retry
       }
