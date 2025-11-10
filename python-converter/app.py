@@ -574,6 +574,15 @@ def convert_pdf_to_docx_endpoint():
                 pass
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/convert/pdf-to-excel-fast', methods=['POST', 'OPTIONS'])
+def pdf_to_excel_fast_endpoint():
+    """Fast PDF to Excel conversion using pdfplumber - NEW OPTIMIZED VERSION"""
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    from pdf_to_excel_fast import pdf_to_excel_fast
+    return pdf_to_excel_fast()
+
 @app.route('/api/convert/pdf-to-excel', methods=['POST', 'OPTIONS'])
 def pdf_to_excel():
     """Convert PDF to Excel - Optimized for speed with better error handling"""

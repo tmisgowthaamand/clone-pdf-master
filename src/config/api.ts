@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
   // PDF Conversion
   PDF_TO_WORD: `${API_URL}/api/convert/pdf-to-docx`,
   PDF_TO_EXCEL: `${API_URL}/api/convert/pdf-to-excel`,
+  PDF_TO_EXCEL_FAST: `${API_URL}/api/convert/pdf-to-excel-fast`,
   PDF_TO_PPTX: `${API_URL}/api/convert/pdf-to-pptx`,
   PDF_TO_JPG: `${API_URL}/api/convert/pdf-to-jpg`,
   

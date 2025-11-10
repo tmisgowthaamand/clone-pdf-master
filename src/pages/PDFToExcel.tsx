@@ -62,8 +62,9 @@ const PDFToExcel = () => {
     setIsConverting(true);
 
     try {
+      // Use FAST endpoint for better performance and memory efficiency
       const blob = await convertFile(
-        API_ENDPOINTS.PDF_TO_EXCEL,
+        API_ENDPOINTS.PDF_TO_EXCEL_FAST,
         file,
         (message) => {
           toast({
@@ -176,7 +177,7 @@ const PDFToExcel = () => {
                 Features
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                {["📊 Extract tables from PDF", "🎯 Perfect table extraction", "⚡ Fast Python backend", "🔒 Secure local processing", "💾 Standard XLSX format", "📋 Combines all tables"].map((feature, index) => (
+                {["📊 Extract tables from PDF", "🎯 Perfect table extraction", "⚡ NEW: Ultra-fast pdfplumber", "🔒 Secure local processing", "💾 Standard XLSX format", "🚀 Optimized for speed"].map((feature, index) => (
                   <div 
                     key={index} 
                     className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-background/50 hover:bg-background transition-colors duration-200 lg:hover:scale-105 lg:hover:shadow-md group/item"
