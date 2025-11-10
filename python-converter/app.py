@@ -56,23 +56,28 @@ else:
 
 print(f"CORS Allowed Origins: {ALLOWED_ORIGINS}")
 
-# Configure CORS with proper settings
+# Configure CORS with proper settings - Allow all origins for production
 CORS(app, 
-     resources={r"/api/*": {"origins": "*"}},
+     resources={r"/*": {"origins": "*"}},
      supports_credentials=False,
-     allow_headers=["Content-Type", "Authorization", "Accept"],
-     methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-     expose_headers=["Content-Disposition"])
+     allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+     methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "HEAD"],
+     expose_headers=["Content-Disposition"],
+     max_age=3600)
 
 # Add CORS headers to all responses
 @app.after_request
 def after_request(response):
     origin = request.headers.get('Origin')
-    # Allow all origins for API routes (more permissive for debugging)
-    response.headers['Access-Control-Allow-Origin'] = origin if origin else '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE'
+    # Allow all origins for API routes (production ready)
+    if origin:
+        response.headers['Access-Control-Allow-Origin'] = origin
+    else:
+        response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE, HEAD'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
     response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition'
+    response.headers['Access-Control-Allow-Credentials'] = 'false'
     response.headers['Access-Control-Max-Age'] = '3600'
     return response
 
@@ -82,9 +87,13 @@ def handle_preflight():
     if request.method == 'OPTIONS':
         response = app.make_default_options_response()
         origin = request.headers.get('Origin')
-        response.headers['Access-Control-Allow-Origin'] = origin if origin else '*'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE'
+        if origin:
+            response.headers['Access-Control-Allow-Origin'] = origin
+        else:
+            response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE, HEAD'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
+        response.headers['Access-Control-Allow-Credentials'] = 'false'
         response.headers['Access-Control-Max-Age'] = '3600'
         return response
 
@@ -303,9 +312,11 @@ def convert_pdf_to_docx(input_path, output_dir):
                 pass
         raise RuntimeError(f"PDF to DOCX conversion failed: {str(e)}")
 
-@app.route('/api/convert/pptx-to-pdf', methods=['POST'])
+@app.route('/api/convert/pptx-to-pdf', methods=['POST', 'OPTIONS'])
 def convert_pptx_to_pdf():
     """Convert PowerPoint to PDF - Optimized for speed"""
+    if request.method == 'OPTIONS':
+        return '', 204
     
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
@@ -365,9 +376,11 @@ def convert_pptx_to_pdf():
                 pass
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/convert/pdf-to-pptx', methods=['POST'])
+@app.route('/api/convert/pdf-to-pptx', methods=['POST', 'OPTIONS'])
 def convert_pdf_to_pptx_endpoint():
     """Convert PDF to PowerPoint endpoint"""
+    if request.method == 'OPTIONS':
+        return '', 204
     
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
@@ -422,9 +435,11 @@ def convert_pdf_to_pptx_endpoint():
                 pass
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/convert/docx-to-pdf', methods=['POST'])
+@app.route('/api/convert/docx-to-pdf', methods=['POST', 'OPTIONS'])
 def convert_docx_to_pdf_endpoint():
     """Convert Word to PDF endpoint"""
+    if request.method == 'OPTIONS':
+        return '', 204
     
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
@@ -479,9 +494,11 @@ def convert_docx_to_pdf_endpoint():
                 pass
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/convert/pdf-to-docx', methods=['POST'])
+@app.route('/api/convert/pdf-to-docx', methods=['POST', 'OPTIONS'])
 def convert_pdf_to_docx_endpoint():
     """Convert PDF to Word endpoint"""
+    if request.method == 'OPTIONS':
+        return '', 204
     
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
@@ -536,19 +553,32 @@ def convert_pdf_to_docx_endpoint():
                 pass
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/convert/pdf-to-excel', methods=['POST'])
+@app.route('/api/convert/pdf-to-excel', methods=['POST', 'OPTIONS'])
 def pdf_to_excel():
-    """Convert PDF to Excel - Optimized for speed"""
+    """Convert PDF to Excel - Optimized for speed with better error handling"""
+    # Handle OPTIONS request
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     tmpdir = None
     try:
+        print(f"\n{'='*60}")
+        print(f"PDF TO EXCEL CONVERSION REQUEST")
+        print(f"Method: {request.method}")
+        print(f"Headers: {dict(request.headers)}")
+        print(f"{'='*60}\n")
+        
         if 'file' not in request.files:
+            print("Error: No file provided in request")
             return jsonify({'error': 'No file provided'}), 400
         
         file = request.files['file']
         if file.filename == '':
+            print("Error: No file selected")
             return jsonify({'error': 'No file selected'}), 400
         
         if not allowed_file(file.filename, {'pdf'}):
+            print(f"Error: Invalid file type - {file.filename}")
             return jsonify({'error': 'Only PDF files are allowed'}), 400
         
         # Create temp directory
@@ -1481,9 +1511,11 @@ def convert_excel_to_pdf_professional_api(excel_path, output_dir):
     except:
         return None
 
-@app.route('/api/convert/excel-to-pdf', methods=['POST'])
+@app.route('/api/convert/excel-to-pdf', methods=['POST', 'OPTIONS'])
 def excel_to_pdf():
     """Convert Excel/CSV to PDF - iLovePDF quality"""
+    if request.method == 'OPTIONS':
+        return '', 204
     tmpdir = None
     try:
         if 'file' not in request.files:
@@ -1767,9 +1799,11 @@ def excel_to_bank_statement():
             except:
                 pass
 
-@app.route('/api/convert/pdf-to-jpg', methods=['POST'])
+@app.route('/api/convert/pdf-to-jpg', methods=['POST', 'OPTIONS'])
 def pdf_to_jpg():
     """Convert PDF to JPG images - Optimized for speed"""
+    if request.method == 'OPTIONS':
+        return '', 204
     tmpdir = None
     try:
         if 'file' not in request.files:
@@ -1896,9 +1930,11 @@ def pdf_to_jpg():
             except:
                 pass
 
-@app.route('/api/convert/jpg-to-pdf', methods=['POST'])
+@app.route('/api/convert/jpg-to-pdf', methods=['POST', 'OPTIONS'])
 def jpg_to_pdf():
     """Convert JPG/JPEG images to PDF with options - iLovePDF style"""
+    if request.method == 'OPTIONS':
+        return '', 204
     tmpdir = None
     try:
         if 'files' not in request.files:
@@ -2100,9 +2136,11 @@ def jpg_to_pdf():
             except:
                 pass
 
-@app.route('/api/sign-pdf', methods=['POST'])
+@app.route('/api/sign-pdf', methods=['POST', 'OPTIONS'])
 def sign_pdf():
     """Add signatures to PDF - iLovePDF style"""
+    if request.method == 'OPTIONS':
+        return '', 204
     tmpdir = None
     try:
         if 'file' not in request.files:
@@ -2274,9 +2312,11 @@ def edit_pdf_page():
     """Render the PDF editor page"""
     return render_template('edit_pdf.html')
 
-@app.route('/api/upload-pdf-for-edit', methods=['POST'])
+@app.route('/api/upload-pdf-for-edit', methods=['POST', 'OPTIONS'])
 def upload_pdf_for_edit():
     """Upload PDF and return base64 encoded data for editor"""
+    if request.method == 'OPTIONS':
+        return '', 204
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
@@ -2309,9 +2349,11 @@ def upload_pdf_for_edit():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/save-edited-pdf', methods=['POST'])
+@app.route('/api/save-edited-pdf', methods=['POST', 'OPTIONS'])
 def save_edited_pdf():
     """Save edited PDF from base64 data"""
+    if request.method == 'OPTIONS':
+        return '', 204
     try:
         data = request.get_json()
         
@@ -2397,9 +2439,11 @@ def test_sign_api():
         'timestamp': str(pd.Timestamp.now())
     })
 
-@app.route('/api/sign/create-text-signature', methods=['POST'])
+@app.route('/api/sign/create-text-signature', methods=['POST', 'OPTIONS'])
 def create_text_signature():
     """Create signature from text"""
+    if request.method == 'OPTIONS':
+        return '', 204
     try:
         print("=== CREATE TEXT SIGNATURE API CALLED ===")
         data = request.json
@@ -2908,9 +2952,11 @@ def add_image_watermark(pdf_bytes, image_bytes, opacity, rotation, position, lay
     writer.write(output)
     return output.getvalue()
 
-@app.route('/api/watermark/add', methods=['POST'])
+@app.route('/api/watermark/add', methods=['POST', 'OPTIONS'])
 def add_watermark():
     """API endpoint to add watermark to PDF - Optimized for speed"""
+    if request.method == 'OPTIONS':
+        return '', 204
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No PDF file provided"}), 400
@@ -2975,9 +3021,11 @@ def add_watermark():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/html-to-pdf', methods=['POST'])
+@app.route('/api/html-to-pdf', methods=['POST', 'OPTIONS'])
 def html_to_pdf():
     """Convert HTML to PDF - Optimized for speed"""
+    if request.method == 'OPTIONS':
+        return '', 204
     try:
         # Try to import Playwright
         try:
@@ -3224,9 +3272,11 @@ def html_to_pdf():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/pdf/rotate', methods=['POST'])
+@app.route('/api/pdf/rotate', methods=['POST', 'OPTIONS'])
 def rotate_pdf():
     """API endpoint to rotate PDF pages - Optimized for speed"""
+    if request.method == 'OPTIONS':
+        return '', 204
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No PDF file provided"}), 400
@@ -3282,9 +3332,11 @@ def rotate_pdf():
         print(f"Rotation Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/pdf/unlock', methods=['POST'])
+@app.route('/api/pdf/unlock', methods=['POST', 'OPTIONS'])
 def unlock_pdf():
     """API endpoint to unlock/decrypt password-protected PDF files - Optimized"""
+    if request.method == 'OPTIONS':
+        return '', 204
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No PDF file provided"}), 400
@@ -3375,9 +3427,11 @@ def unlock_pdf():
         traceback.print_exc()
         return jsonify({"error": f"Failed to process PDF: {str(e)}"}), 500
 
-@app.route('/api/pdf/protect', methods=['POST'])
+@app.route('/api/pdf/protect', methods=['POST', 'OPTIONS'])
 def protect_pdf():
     """API endpoint to protect/encrypt PDF files with password - Optimized"""
+    if request.method == 'OPTIONS':
+        return '', 204
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No PDF file provided"}), 400

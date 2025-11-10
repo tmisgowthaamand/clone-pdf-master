@@ -1,13 +1,13 @@
-# Dockerfile for PDFTools Backend
-# Use this if render.yaml doesn't work
+# Dockerfile for PDFTools Backend - Optimized for Render
+# Production-ready with all dependencies
 
 FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install system dependencies (optimized for Render free tier)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice \
     libreoffice-writer \
     libreoffice-impress \
@@ -20,8 +20,10 @@ RUN apt-get update && apt-get install -y \
     fonts-dejavu-core \
     fontconfig \
     curl \
+    ca-certificates \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* /var/tmp/*
 
 # Copy requirements first for better caching
 COPY requirements.txt .
@@ -49,18 +51,19 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:10000/health || exit 1
 
 # Run the application
-# Use 1 worker for free tier (512MB RAM limit)
-# Increase timeout for large file conversions
+# Optimized for Render free tier (512MB RAM limit)
+# Use gunicorn with optimized settings for stability
 CMD gunicorn app:app \
-    --bind 0.0.0.0:${PORT} \
+    --bind 0.0.0.0:${PORT:-10000} \
     --workers 1 \
     --threads 2 \
     --timeout 600 \
     --worker-class gthread \
     --worker-tmp-dir /dev/shm \
-    --max-requests 500 \
-    --max-requests-jitter 50 \
+    --max-requests 100 \
+    --max-requests-jitter 10 \
     --access-logfile - \
     --error-logfile - \
     --log-level info \
-    --preload
+    --graceful-timeout 30 \
+    --keep-alive 5
