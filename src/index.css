@@ -1624,7 +1624,7 @@ html {
 }
 
 /* ========================================
-   RESPONSIVE UTILITIES
+   RESPONSIVE UTILITIES - ALL DEVICES
    ======================================== */
 
 /* Ensure smooth scrolling on all devices */
@@ -1632,46 +1632,304 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* iOS Safari smooth scrolling */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Prevent horizontal scroll on mobile */
 body {
   overflow-x: hidden;
+  /* Prevent text size adjustment on iOS */
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
-/* Touch-friendly tap targets (minimum 44x44px) */
+/* Touch-friendly tap targets (minimum 44x44px for iOS/Android) */
 button, a, input, select, textarea {
   min-height: 44px;
   min-width: 44px;
+  /* Remove tap highlight on mobile */
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* Responsive container with proper padding */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ========================================
+   MOBILE DEVICES (iPhone, Android phones)
+   Max width: 640px
+   ======================================== */
 @media (max-width: 640px) {
   /* Mobile-specific optimizations */
   .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    max-width: 100% !important;
   }
   
-  /* Reduce animation complexity on mobile */
+  /* Mobile card spacing */
+  .grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  
+  /* Mobile form inputs */
+  input, textarea, select {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    padding: 0.75rem !important;
+  }
+  
+  /* Mobile modal/dialog */
+  [role="dialog"], .modal {
+    max-width: 95vw !important;
+    margin: 1rem !important;
+  }
+  
+  /* Performance optimization - GPU acceleration */
   * {
-    animation-duration: 0.3s !important;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
 }
 
+/* ========================================
+   TABLET DEVICES (iPad, Android tablets)
+   641px - 1024px
+   ======================================== */
 @media (min-width: 641px) and (max-width: 1024px) {
   /* Tablet-specific optimizations */
   .container {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+    max-width: 100% !important;
+  }
+  
+  /* Tablet grid layout - 2 columns */
+  .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+  
+  /* Tablet modal/dialog */
+  [role="dialog"], .modal {
+    max-width: 90vw !important;
+    margin: 2rem auto !important;
   }
 }
 
+/* ========================================
+   DESKTOP & LARGE SCREENS (iMac, Desktop)
+   Min width: 1025px
+   ======================================== */
 @media (min-width: 1025px) {
   /* Desktop-specific optimizations */
   .container {
-    padding-left: 2rem;
-    padding-right: 2rem;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+    max-width: 1400px !important;
   }
+  
+  /* Desktop grid layout - 3 columns */
+  .grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 2rem !important;
+  }
+  
+  /* Desktop modal/dialog */
+  [role="dialog"], .modal {
+    max-width: 800px !important;
+    margin: 3rem auto !important;
+  }
+}
+
+/* ========================================
+   EXTRA LARGE SCREENS (4K, Ultra-wide)
+   Min width: 1536px
+   ======================================== */
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1536px !important;
+  }
+  
+  /* 4-column grid for extra large screens */
+  .grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 2.5rem !important;
+  }
+}
+
+/* ========================================
+   DEVICE-SPECIFIC FIXES
+   ======================================== */
+
+/* iPhone X, XS, 11 Pro, 12 mini, 13 mini (375px) */
+@media (max-width: 375px) {
+  .container {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+
+/* iPhone Plus, XR, 11, 12, 13, 14 (414px) */
+@media (min-width: 376px) and (max-width: 428px) {
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+/* iPad Mini, iPad (768px) */
+@media (min-width: 768px) and (max-width: 820px) {
+  .container {
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+  }
+}
+
+/* iPad Pro 11" (834px) */
+@media (min-width: 821px) and (max-width: 834px) {
+  .container {
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+  }
+}
+
+/* iPad Pro 12.9" (1024px) */
+@media (min-width: 1024px) and (max-width: 1024px) {
+  .container {
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+}
+
+/* Landscape mode adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  /* Reduce vertical spacing in landscape */
+  .space-y-8, .space-y-6 {
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+}
+
+/* Safe area insets for notched devices (iPhone X+) */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
+
+/* ========================================
+   PERFORMANCE OPTIMIZATIONS - NO LAG
+   ======================================== */
+
+/* GPU Acceleration for smooth rendering */
+.card, .btn, button, a, [class*="animate-"] {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
+}
+
+/* Optimize will-change for animations */
+[class*="animate-"] {
+  will-change: transform, opacity;
+}
+
+/* Remove will-change after animation completes */
+[class*="animate-"]:not(:hover):not(:focus):not(:active) {
+  will-change: auto;
+}
+
+/* Smooth scrolling performance */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Optimize repaints and reflows */
+img, video, iframe {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Prevent layout shift */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Optimize font rendering */
+body, button, input, select, textarea {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Optimize compositing layers */
+.glass-card, .glass-effect, .card-3d, .tilt-3d {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Prevent flickering on animations */
+@keyframes preventFlicker {
+  0%, 100% {
+    opacity: 1;
+  }
+}
+
+/* Hardware acceleration for complex backgrounds */
+[class*="bg-"], [class*="Background"] {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Optimize modal/dialog rendering */
+[role="dialog"], .modal, [data-radix-dialog-content] {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  contain: layout style paint;
+}
+
+/* Improve touch responsiveness */
+button, a, [role="button"] {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Optimize grid rendering */
+.grid, [class*="grid-"] {
+  contain: layout style;
+}
+
+/* Prevent unnecessary repaints */
+.container {
+  contain: layout;
 }
 
 /* ========================================
