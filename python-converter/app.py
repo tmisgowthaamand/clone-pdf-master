@@ -61,6 +61,20 @@ CORS(app, resources={
     }
 })
 
+# Add CORS headers to all responses
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    if origin:
+        # Check if origin is allowed
+        if '*' in ALLOWED_ORIGINS or origin in ALLOWED_ORIGINS or any(origin.endswith(o.replace('https://*.', '.')) for o in ALLOWED_ORIGINS if '*' in o):
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept'
+            response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response
+
 # Add LibreOffice to PATH (cross-platform)
 if sys.platform == 'win32':
     libreoffice_path = r"C:\Program Files\LibreOffice\program"

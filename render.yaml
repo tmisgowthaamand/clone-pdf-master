@@ -2,8 +2,9 @@ services:
   - type: web
     name: pdftools-backend
     env: docker
-    dockerfilePath: ./python-converter/Dockerfile
-    dockerContext: ./python-converter
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./
+    plan: free
     envVars:
       - key: PORT
         value: 10000
@@ -12,7 +13,8 @@ services:
       - key: PYTHONUNBUFFERED
         value: 1
       - key: ALLOWED_ORIGINS
-        value: "https://pdf-tools-phi.vercel.app,http://localhost:5173,http://localhost:3000"
+        value: "https://pdf-tools-phi.vercel.app,https://*.vercel.app,http://localhost:5173,http://localhost:3000"
       - key: MAX_CONTENT_LENGTH
         value: "104857600"
     healthCheckPath: /health
+    autoDeploy: true
