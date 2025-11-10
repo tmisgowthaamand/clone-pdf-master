@@ -18,8 +18,8 @@ services:
       - key: MAX_CONTENT_LENGTH
         value: "104857600"
       - key: GUNICORN_CMD_ARGS
-        value: "--timeout 600 --workers 1 --threads 2 --worker-class gthread"
+        value: "--timeout 600 --workers 1 --threads 1 --worker-class sync --preload"
     healthCheckPath: /health
     autoDeploy: true
     buildCommand: echo "Building with Docker..."
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 600 --worker-class gthread --access-logfile - --error-logfile - --log-level info
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 600 --worker-class sync --preload --max-requests 50 --max-requests-jitter 5 --access-logfile - --error-logfile - --log-level info

@@ -9,6 +9,7 @@ Updated: 2025-11-10 - Fixed CORS and optimized for Render deployment
 import sys
 import io
 import os
+import gc
 
 # Fix Windows encoding issues - force UTF-8
 if sys.platform == 'win32':
@@ -37,6 +38,11 @@ from reportlab.lib.utils import ImageReader
 from reportlab.lib.colors import HexColor
 from datetime import datetime
 import requests
+import fitz  # PyMuPDF - moved to top for memory efficiency
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.drawing.image import Image as OpenpyxlImage
+from openpyxl.utils import get_column_letter
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # For session management
@@ -592,17 +598,11 @@ def pdf_to_excel():
         print(f"Converting PDF to Excel: {filename}")
         
         # Use PyMuPDF to extract images, text, and tables
-        import fitz
         doc = fitz.open(pdf_path)
         
         # Create Excel file
         excel_name = Path(filename).stem + '.xlsx'
         excel_path = os.path.join(tmpdir, excel_name)
-        
-        from openpyxl import Workbook
-        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-        from openpyxl.drawing.image import Image as OpenpyxlImage
-        from openpyxl.utils import get_column_letter
         
         wb = Workbook()
         ws = wb.active
@@ -851,6 +851,12 @@ def pdf_to_excel():
         # Save workbook
         wb.save(excel_path)
         doc.close()
+        
+        # Explicit memory cleanup
+        del doc
+        del wb
+        del ws
+        gc.collect()
         
         print(f"[OK] Excel file created with logo and formatting: {excel_path}")
         print(f"{'='*60}\n")

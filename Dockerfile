@@ -52,16 +52,17 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Run the application
 # Optimized for Render free tier (512MB RAM limit)
-# Use gunicorn with optimized settings for stability
+# Use gunicorn with optimized settings for stability and memory efficiency
 CMD gunicorn app:app \
     --bind 0.0.0.0:${PORT:-10000} \
     --workers 1 \
-    --threads 2 \
+    --threads 1 \
     --timeout 600 \
-    --worker-class gthread \
+    --worker-class sync \
     --worker-tmp-dir /dev/shm \
-    --max-requests 100 \
-    --max-requests-jitter 10 \
+    --max-requests 50 \
+    --max-requests-jitter 5 \
+    --preload \
     --access-logfile - \
     --error-logfile - \
     --log-level info \
