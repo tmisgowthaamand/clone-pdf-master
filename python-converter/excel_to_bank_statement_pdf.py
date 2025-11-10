@@ -107,8 +107,14 @@ def convert_excel_to_bank_statement_pdf(excel_path, output_dir, logo_path=None):
         print(f"Input: {excel_path}")
         print(f"{'='*60}\n")
 
-        df = pd.read_excel(excel_path, sheet_name=0)
-        print(f"[OK] Excel file loaded: {len(df)} rows x {len(df.columns)} columns")
+        # Load file based on extension
+        file_ext = Path(excel_path).suffix.lower()
+        if file_ext == '.csv':
+            df = pd.read_csv(excel_path)
+            print(f"[OK] CSV file loaded: {len(df)} rows x {len(df.columns)} columns")
+        else:
+            df = pd.read_excel(excel_path, sheet_name=0)
+            print(f"[OK] Excel file loaded: {len(df)} rows x {len(df.columns)} columns")
 
         # --- Metadata Extraction ---
         metadata = extract_metadata(df)

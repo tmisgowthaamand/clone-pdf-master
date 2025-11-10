@@ -1609,9 +1609,9 @@ def excel_to_bank_statement():
             print("ERROR: Empty filename")
             return jsonify({'error': 'No file selected'}), 400
         
-        if not allowed_file(file.filename, {'xlsx', 'xls'}):
+        if not allowed_file(file.filename, {'xlsx', 'xls', 'csv'}):
             print(f"ERROR: Invalid file type: {file.filename}")
-            return jsonify({'error': 'Only Excel (.xlsx, .xls) files are allowed'}), 400
+            return jsonify({'error': 'Only Excel (.xlsx, .xls) or CSV (.csv) files are allowed'}), 400
         
         # Create temp directory
         tmpdir = tempfile.mkdtemp()
