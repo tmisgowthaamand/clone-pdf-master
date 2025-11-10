@@ -3,6 +3,7 @@
 """
 Flask API for PowerPoint to PDF Conversion
 Professional-grade conversion using LibreOffice
+Updated: 2025-11-10 - Fixed CORS and optimized for Render deployment
 """
 
 import sys
