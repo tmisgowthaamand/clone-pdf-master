@@ -50,11 +50,13 @@ app.secret_key = os.urandom(24)  # For session management
 # Configure CORS to allow frontend access
 ALLOWED_ORIGINS_STR = os.environ.get('ALLOWED_ORIGINS', '*')
 if ALLOWED_ORIGINS_STR == '*':
-    # Default allowed origins for development
+    # Default allowed origins for development and production
     ALLOWED_ORIGINS = [
         'http://localhost:5173',
         'http://localhost:3000',
-        'https://pdf-tools-phi.vercel.app'
+        'https://pdf-tools-phi.vercel.app',
+        'https://pdf-tools-phi.vercel.app/',  # With trailing slash
+        'https://*.vercel.app'  # All Vercel preview deployments
     ]
 else:
     # Parse from environment variable
@@ -64,12 +66,16 @@ print(f"CORS Allowed Origins: {ALLOWED_ORIGINS}")
 
 # Configure CORS with proper settings - Allow all origins for production
 CORS(app, 
-     resources={r"/*": {"origins": "*"}},
-     supports_credentials=False,
-     allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"],
-     methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "HEAD"],
-     expose_headers=["Content-Disposition"],
-     max_age=3600)
+     resources={
+         r"/*": {
+             "origins": "*",
+             "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE", "HEAD"],
+             "allow_headers": ["Content-Type", "Authorization", "Accept", "X-Requested-With", "Origin"],
+             "expose_headers": ["Content-Disposition", "Content-Length"],
+             "supports_credentials": False,
+             "max_age": 3600
+         }
+     })
 
 # Add CORS headers to all responses
 @app.after_request
@@ -80,11 +86,16 @@ def after_request(response):
         response.headers['Access-Control-Allow-Origin'] = origin
     else:
         response.headers['Access-Control-Allow-Origin'] = '*'
+    
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE, HEAD'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
-    response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With, Origin'
+    response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
     response.headers['Access-Control-Allow-Credentials'] = 'false'
     response.headers['Access-Control-Max-Age'] = '3600'
+    
+    # Additional headers for better compatibility
+    response.headers['Vary'] = 'Origin'
+    
     return response
 
 # Handle OPTIONS requests explicitly
@@ -97,11 +108,15 @@ def handle_preflight():
             response.headers['Access-Control-Allow-Origin'] = origin
         else:
             response.headers['Access-Control-Allow-Origin'] = '*'
+        
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE, HEAD'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With, Origin'
+        response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
         response.headers['Access-Control-Allow-Credentials'] = 'false'
         response.headers['Access-Control-Max-Age'] = '3600'
-        return response
+        response.headers['Vary'] = 'Origin'
+        
+        return response, 200
 
 # Add LibreOffice to PATH (cross-platform)
 if sys.platform == 'win32':
@@ -562,14 +577,7 @@ def convert_pdf_to_docx_endpoint():
 @app.route('/api/convert/pdf-to-excel', methods=['POST', 'OPTIONS'])
 def pdf_to_excel():
     """Convert PDF to Excel - Optimized for speed with better error handling"""
-    # Handle OPTIONS request explicitly
-    if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
-        response.headers['Access-Control-Max-Age'] = '3600'
-        return response, 200
+    # OPTIONS is handled by @app.before_request globally
     
     tmpdir = None
     try:
