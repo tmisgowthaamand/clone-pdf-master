@@ -23,3 +23,5 @@ services:
     autoDeploy: true
     buildCommand: echo "Building with Docker..."
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 600 --worker-class sync --preload --max-requests 50 --max-requests-jitter 5 --access-logfile - --error-logfile - --log-level info
+    # Increase timeouts for free tier cold starts
+    initialDelaySeconds: 60

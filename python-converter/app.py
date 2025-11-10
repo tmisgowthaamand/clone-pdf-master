@@ -562,9 +562,14 @@ def convert_pdf_to_docx_endpoint():
 @app.route('/api/convert/pdf-to-excel', methods=['POST', 'OPTIONS'])
 def pdf_to_excel():
     """Convert PDF to Excel - Optimized for speed with better error handling"""
-    # Handle OPTIONS request
+    # Handle OPTIONS request explicitly
     if request.method == 'OPTIONS':
-        return '', 204
+        response = jsonify({'status': 'ok'})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
+        response.headers['Access-Control-Max-Age'] = '3600'
+        return response, 200
     
     tmpdir = None
     try:
@@ -2407,6 +2412,17 @@ def index():
 def health_check():
     """Health check endpoint for Render"""
     return jsonify({'status': 'healthy'}), 200
+
+# Catch-all OPTIONS handler for any route
+@app.route('/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    """Handle OPTIONS requests for all routes"""
+    response = jsonify({'status': 'ok'})
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, HEAD'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
+    response.headers['Access-Control-Max-Age'] = '3600'
+    return response, 200
 
 @app.route('/api/info', methods=['GET'])
 def api_info():
