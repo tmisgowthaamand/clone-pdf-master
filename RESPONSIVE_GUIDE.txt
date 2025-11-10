@@ -1,0 +1,231 @@
+========================================
+RESPONSIVE LAYOUT SYSTEM - USAGE GUIDE
+Clone PDF Master Project
+========================================
+
+✅ INSTALLATION COMPLETE
+- responsive-layout.css added to src/
+- Imported globally in main.tsx
+- Ready to use across all components
+
+========================================
+BREAKPOINTS
+========================================
+
+Mobile:    max-width 480px   (1 column)
+Tablet:    481px - 900px     (2 columns)
+Desktop:   901px and above   (3-4 columns)
+
+Test Sizes:
+- 320px  (Small phone)
+- 480px  (Mobile)
+- 768px  (Tablet)
+- 1024px (Laptop)
+- 1366px (Desktop)
+
+========================================
+UTILITY CLASSES - QUICK REFERENCE
+========================================
+
+CONTAINERS:
+.container          - Max-width 1200px, centered
+.container-fluid    - Full width, padded
+
+FLEXBOX:
+.row                - Flex row with gap
+.col                - Flex column (equal width)
+.col-6              - 50% width column
+.col-12             - 100% width column
+
+ALIGNMENT:
+.center             - Center both axes
+.v-center           - Vertical center
+.h-center           - Horizontal center
+.text-center        - Center text
+.text-left          - Left align text
+.text-right         - Right align text
+
+GRID:
+.grid               - CSS Grid with gap
+.grid--2            - 2 columns (1 on mobile)
+.grid--3            - 3 columns (2 on tablet, 1 on mobile)
+.grid--4            - 4 columns (2 on tablet, 1 on mobile)
+.grid--auto         - Auto-fit columns (min 250px)
+
+CARDS:
+.card               - Card with shadow & padding
+.card-header        - Card header section
+.card-body          - Card body section
+.card-footer        - Card footer section
+
+TABLES:
+.table-responsive   - Scrollable table wrapper
+
+EMBEDS (PDF/Video):
+.responsive-embed   - 16:9 responsive iframe
+.responsive-embed--4-3   - 4:3 aspect ratio
+.responsive-embed--1-1   - 1:1 aspect ratio
+
+BUTTONS:
+.btn                - Primary button
+.btn--ghost         - Outline button
+.btn--sm            - Small button
+.btn--lg            - Large button
+.btn--block         - Full width button
+
+FORMS:
+.form-group         - Form field wrapper
+.form-label         - Form label
+.upload-area        - Drag & drop upload zone
+
+SPACING:
+.m-0, .mt-1, .mb-2, .my-3   - Margins
+.p-0, .p-1, .p-2, .p-3      - Padding
+
+WIDTH:
+.w-100, .w-75, .w-50, .w-25, .w-auto
+.max-w-sm, .max-w-md, .max-w-lg, .max-w-xl
+
+DISPLAY:
+.d-none, .d-block, .d-flex, .d-grid
+
+RESPONSIVE VISIBILITY:
+.hide-sm            - Hide on mobile
+.hide-md            - Hide on tablet
+.hide-lg            - Hide on desktop
+
+========================================
+USAGE EXAMPLES
+========================================
+
+1. BASIC PAGE LAYOUT:
+<div class="container">
+  <div class="row">
+    <div class="col-8">Main content</div>
+    <div class="col-4">Sidebar</div>
+  </div>
+</div>
+
+2. CARD GRID:
+<div class="container">
+  <div class="grid grid--3">
+    <div class="card">Card 1</div>
+    <div class="card">Card 2</div>
+    <div class="card">Card 3</div>
+  </div>
+</div>
+
+3. RESPONSIVE TABLE:
+<div class="table-responsive">
+  <table>
+    <thead>
+      <tr><th>Column 1</th><th>Column 2</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Data 1</td><td>Data 2</td></tr>
+    </tbody>
+  </table>
+</div>
+
+4. PDF EMBED:
+<div class="responsive-embed">
+  <iframe src="document.pdf"></iframe>
+</div>
+
+5. UPLOAD AREA:
+<div class="upload-area">
+  <p>Drag & drop files here</p>
+  <button class="btn">Or click to browse</button>
+</div>
+
+6. FORM:
+<div class="form-group">
+  <label class="form-label">Email</label>
+  <input type="email" placeholder="Enter email">
+</div>
+<button class="btn btn--block">Submit</button>
+
+7. CENTERED CONTENT:
+<div class="container">
+  <div class="center" style="min-height: 400px;">
+    <div class="card max-w-md">
+      <h2>Centered Card</h2>
+      <p>Content here</p>
+    </div>
+  </div>
+</div>
+
+========================================
+MIGRATION TIPS
+========================================
+
+REPLACE:
+width: 600px;           → max-width: 600px; or .max-w-md
+position: absolute;     → Use flexbox/grid instead
+float: left;            → Use .row and .col
+display: inline-block;  → Use .d-flex
+
+WRAP TABLES:
+<table>...</table>
+↓
+<div class="table-responsive">
+  <table>...</table>
+</div>
+
+WRAP PDF IFRAMES:
+<iframe src="pdf.pdf"></iframe>
+↓
+<div class="responsive-embed">
+  <iframe src="pdf.pdf"></iframe>
+</div>
+
+========================================
+TESTING CHECKLIST
+========================================
+
+Chrome DevTools → Toggle Device Toolbar (Ctrl+Shift+M)
+
+Test at:
+☐ 320px  - Small phone (iPhone SE)
+☐ 375px  - iPhone X/11/12
+☐ 414px  - iPhone Plus
+☐ 768px  - iPad
+☐ 1024px - iPad Pro / Laptop
+☐ 1366px - Desktop
+☐ 1920px - Large desktop
+
+Check:
+☐ No horizontal scroll
+☐ Text readable (not too small)
+☐ Buttons touch-friendly (44px min)
+☐ Tables scroll horizontally
+☐ Forms stack vertically on mobile
+☐ Cards align properly
+☐ PDF embeds scale correctly
+
+========================================
+PERFORMANCE NOTES
+========================================
+
+✅ Uses CSS Grid & Flexbox (modern, fast)
+✅ No JavaScript required
+✅ Mobile-first approach
+✅ Minimal CSS (~15KB)
+✅ Works with existing Tailwind CSS
+✅ No conflicts with current styles
+
+========================================
+SUPPORT
+========================================
+
+All modern browsers:
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+Mobile:
+- iOS Safari 14+
+- Chrome Android 90+
+
+========================================
