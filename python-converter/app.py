@@ -42,12 +42,22 @@ app.secret_key = os.urandom(24)  # For session management
 
 # Configure CORS to allow frontend access
 ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', '*').split(',')
+# Add Vercel frontend domain explicitly
+if ALLOWED_ORIGINS == ['*']:
+    ALLOWED_ORIGINS = [
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'https://pdf-tools-phi.vercel.app',
+        'https://*.vercel.app'
+    ]
+
 CORS(app, resources={
     r"/api/*": {
         "origins": ALLOWED_ORIGINS,
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"],
-        "supports_credentials": True
+        "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+        "allow_headers": ["Content-Type", "Authorization", "Accept"],
+        "supports_credentials": True,
+        "expose_headers": ["Content-Disposition"]
     }
 })
 
