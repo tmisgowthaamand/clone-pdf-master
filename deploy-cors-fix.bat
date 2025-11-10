@@ -5,12 +5,18 @@ echo ========================================
 echo.
 
 echo Step 1: Committing changes...
-git add python-converter/app.py
-git commit -m "Fix CORS error: Add explicit OPTIONS handlers for all routes"
+git add src/utils/apiClient.ts
+git add src/pages/PDFToExcel.tsx
+git add test-cors.ps1
+git commit -m "Fix CORS: Add retry logic and explicit CORS mode for Render cold starts"
 
 echo.
 echo Step 2: Pushing to repository...
 git push origin main
+
+echo.
+echo Step 3: Deploying to Vercel...
+vercel --prod
 
 echo.
 echo ========================================

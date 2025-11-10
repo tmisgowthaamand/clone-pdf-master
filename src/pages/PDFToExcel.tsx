@@ -8,6 +8,7 @@ import { ArrowLeft, Download, Sheet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Animated3DIcon } from "@/components/Animated3DIcon";
 import { Card } from "@/components/ui/card";
+import { convertFile, downloadBlob } from "@/utils/apiClient";
 
 const PDFToExcel = () => {
   const { toast } = useToast();
@@ -27,85 +28,33 @@ const PDFToExcel = () => {
     const file = files[0];
     setIsConverting(true);
 
-    // Retry logic for cold starts (Render free tier)
-    const maxRetries = 3;
-    const retryDelay = 5000; // 5 seconds
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        // Show retry message if not first attempt
-        if (attempt > 1) {
+    try {
+      const blob = await convertFile(
+        API_ENDPOINTS.PDF_TO_EXCEL,
+        file,
+        (message) => {
           toast({
-            title: "Retrying...",
-            description: `Backend is waking up... Attempt ${attempt}/${maxRetries}`,
+            title: "Please wait...",
+            description: message,
           });
         }
+      );
 
-        const response = await fetch(API_ENDPOINTS.PDF_TO_EXCEL, {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          },
-        });
+      downloadBlob(blob, file.name.replace('.pdf', '.xlsx'));
 
-        if (!response.ok) {
-          // Handle 502 Bad Gateway (backend sleeping)
-          if (response.status === 502 && attempt < maxRetries) {
-            toast({
-              title: "Backend Starting",
-              description: `Server is waking up... Retrying in ${retryDelay/1000} seconds (${attempt}/${maxRetries})`,
-            });
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
-            continue; // Retry
-          }
-
-          const error = await response.json().catch(() => ({ error: 'Conversion failed' }));
-          throw new Error(error.error || `Conversion failed (${response.status})`);
-        }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = file.name.replace('.pdf', '.xlsx');
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        toast({
-          title: "Success!",
-          description: `PDF converted to Excel successfully!`,
-        });
-        setIsConverting(false);
-        return; // Success, exit function
-      } catch (error: any) {
-        // If it's a network error and we have retries left, retry
-        if ((error.message.includes('Failed to fetch') || error.message.includes('502')) && attempt < maxRetries) {
-          toast({
-            title: "Connection Issue",
-            description: `Retrying... (${attempt}/${maxRetries})`,
-          });
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-          continue; // Retry
-        }
-
-        // Final attempt failed
-        if (attempt === maxRetries) {
-          toast({
-            title: "Conversion Failed",
-            description: error.message || "Failed to convert PDF to Excel. The backend may be unavailable.",
-            variant: "destructive",
-          });
-        }
-      }
+      toast({
+        title: "Success!",
+        description: `PDF converted to Excel successfully!`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Conversion Failed",
+        description: error.message || "Failed to convert PDF to Excel. The backend may be unavailable.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConverting(false);
     }
-
-    setIsConverting(false);
   };
 
   return (
