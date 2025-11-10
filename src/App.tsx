@@ -2,9 +2,6 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { BackgroundSwitcher } from "@/components/BackgroundSwitcher";
-import { AnimatedCharacter } from "@/components/AnimatedCharacter";
-import { FloatingImages } from "@/components/FloatingImages";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import Index from "./pages/Index";
 import PowerPointToPDF from "./pages/PowerPointToPDF";
@@ -32,9 +29,6 @@ function App() {
       <LoadingScreen />
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <BackgroundSwitcher />
-        <FloatingImages />
-        <AnimatedCharacter position="right" />
-        <ThemeToggle />
         <div className="relative z-10">
           <Routes>
             <Route path="/" element={<Index />} />

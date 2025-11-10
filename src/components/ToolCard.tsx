@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
+import { memo } from "react";
 
 interface ToolCardProps {
   icon: LucideIcon;
@@ -11,7 +12,7 @@ interface ToolCardProps {
   href?: string;
 }
 
-export const ToolCard = ({ icon: Icon, title, description, iconColor, badge, href }: ToolCardProps) => {
+export const ToolCard = memo(({ icon: Icon, title, description, iconColor, badge, href }: ToolCardProps) => {
   const content = (
     <Card className="group relative p-6 cursor-pointer transition-all duration-500 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-3 bg-card border-border hover:border-primary/50 overflow-hidden">
       {/* Animated gradient overlay on hover with shimmer */}
@@ -49,4 +50,4 @@ export const ToolCard = ({ icon: Icon, title, description, iconColor, badge, hre
   }
 
   return content;
-};
+});

@@ -7,37 +7,10 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: {
-        DEFAULT: "1rem",
-        sm: "1.5rem",
-        md: "2rem",
-        lg: "2rem",
-        xl: "2.5rem",
-        "2xl": "3rem",
-      },
+      padding: "2rem",
       screens: {
-        sm: "640px",
-        md: "768px",
-        lg: "1024px",
-        xl: "1280px",
         "2xl": "1400px",
       },
-    },
-    screens: {
-      'xs': '375px',
-      'sm': '640px',
-      'md': '768px',
-      'lg': '1024px',
-      'xl': '1280px',
-      '2xl': '1536px',
-      '3xl': '1920px',
-      // Device-specific breakpoints
-      'iphone': '375px',
-      'iphone-plus': '414px',
-      'ipad': '768px',
-      'ipad-pro': '1024px',
-      'desktop': '1280px',
-      'imac': '1920px',
     },
     extend: {
       colors: {
