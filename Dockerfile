@@ -56,15 +56,14 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 CMD gunicorn app:app \
     --bind 0.0.0.0:${PORT:-10000} \
     --workers 1 \
-    --threads 1 \
-    --timeout 600 \
+    --threads 2 \
+    --timeout 300 \
     --worker-class sync \
     --worker-tmp-dir /dev/shm \
-    --max-requests 50 \
-    --max-requests-jitter 5 \
-    --preload \
+    --max-requests 100 \
+    --max-requests-jitter 10 \
     --access-logfile - \
     --error-logfile - \
-    --log-level info \
-    --graceful-timeout 30 \
+    --log-level debug \
+    --graceful-timeout 120 \
     --keep-alive 5

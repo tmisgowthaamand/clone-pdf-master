@@ -22,6 +22,6 @@ services:
     healthCheckPath: /health
     autoDeploy: true
     buildCommand: echo "Building with Docker..."
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 600 --worker-class sync --preload --max-requests 50 --max-requests-jitter 5 --access-logfile - --error-logfile - --log-level info
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 300 --worker-class sync --max-requests 100 --max-requests-jitter 10 --access-logfile - --error-logfile - --log-level debug --graceful-timeout 120 --keep-alive 5
     # Increase timeouts for free tier cold starts
-    initialDelaySeconds: 60
+    initialDelaySeconds: 90
