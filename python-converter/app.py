@@ -1586,7 +1586,7 @@ def excel_to_pdf():
 
 @app.route('/api/convert/excel-to-bank-statement', methods=['POST', 'OPTIONS'])
 def excel_to_bank_statement():
-    """Convert Excel to Bank Statement PDF with logo and professional formatting"""
+    """Convert Excel to Bank Statement PDF - Uses professional Excel COM for perfect alignment"""
     # Handle CORS preflight
     if request.method == 'OPTIONS':
         return '', 204
@@ -1616,12 +1616,12 @@ def excel_to_bank_statement():
         # Create temp directory
         tmpdir = tempfile.mkdtemp()
         
-        # Save uploaded Excel file
+        # Save uploaded file
         filename = secure_filename(file.filename)
-        excel_path = os.path.join(tmpdir, filename)
-        file.save(excel_path)
+        file_path = os.path.join(tmpdir, filename)
+        file.save(file_path)
         
-        # Check if logo was uploaded
+        # Check if logo was uploaded (for future use)
         logo_path = None
         if 'logo' in request.files:
             logo_file = request.files['logo']
@@ -1632,24 +1632,73 @@ def excel_to_bank_statement():
                 print(f"[OK] Logo uploaded: {logo_filename}")
         
         print(f"\n{'='*60}")
-        print(f"EXCEL TO BANK STATEMENT PDF CONVERSION")
+        print(f"EXCEL TO BANK STATEMENT PDF - Professional Conversion")
         print(f"Input: {filename}")
         print(f"Logo: {logo_path if logo_path else 'None'}")
         print(f"{'='*60}\n")
         
-        # Import the bank statement converter
-        # Add current directory to path if not already there
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        if current_dir not in sys.path:
-            sys.path.insert(0, current_dir)
+        # Handle CSV files - convert to Excel first
+        excel_path = file_path
+        if filename.lower().endswith('.csv'):
+            print("Step 1: Converting CSV to Excel...")
+            excel_path = convert_csv_to_excel_api(file_path, tmpdir)
+            if not excel_path or not os.path.exists(excel_path):
+                raise RuntimeError("CSV to Excel conversion failed")
+            print(f"[OK] CSV converted to Excel: {os.path.basename(excel_path)}\n")
         
-        from excel_to_bank_statement_pdf import convert_excel_to_bank_statement_pdf
+        # Use professional Excel COM conversion for perfect alignment
+        pdf_path = None
+        print("Step 2: Converting to PDF with Microsoft Excel COM (Perfect Alignment)...")
+        pdf_path = convert_excel_to_pdf_professional_api(excel_path, tmpdir)
         
-        # Convert to bank statement PDF
-        pdf_path = convert_excel_to_bank_statement_pdf(excel_path, tmpdir, logo_path=logo_path)
-        
+        # Fallback to LibreOffice if COM fails
         if not pdf_path or not os.path.exists(pdf_path):
-            raise RuntimeError("PDF file was not created")
+            print(f"\n{'='*60}")
+            print(f"FALLBACK: Using LibreOffice for conversion")
+            print(f"{'='*60}\n")
+            
+            # Detect LibreOffice executable
+            if sys.platform == 'win32':
+                soffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
+                try:
+                    subprocess.run(['taskkill', '/F', '/IM', 'soffice.exe', '/T'], 
+                                  capture_output=True, timeout=5, encoding='utf-8', errors='replace')
+                    subprocess.run(['taskkill', '/F', '/IM', 'soffice.bin', '/T'], 
+                                  capture_output=True, timeout=5, encoding='utf-8', errors='replace')
+                    import time
+                    time.sleep(1)
+                except:
+                    pass
+            else:
+                soffice_exe = shutil.which('soffice') or 'soffice'
+            
+            cmd = [
+                soffice_exe,
+                '--headless',
+                '--invisible',
+                '--nodefault',
+                '--nofirststartwizard',
+                '--nolockcheck',
+                '--nologo',
+                '--norestore',
+                '--convert-to', 'pdf:calc_pdf_Export',
+                '--outdir', tmpdir,
+                excel_path
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120,
+                                   encoding='utf-8', errors='replace')
+            
+            if result.returncode != 0:
+                raise RuntimeError(f"LibreOffice conversion failed: {result.stderr}")
+            
+            base_name = os.path.splitext(os.path.basename(excel_path))[0]
+            pdf_path = os.path.join(tmpdir, f"{base_name}.pdf")
+            
+            if not pdf_path or not os.path.exists(pdf_path):
+                raise RuntimeError("PDF file was not created")
+            
+            print(f"[OK] PDF created with LibreOffice")
         
         # Send file
         pdf_name = Path(filename).stem + '_statement.pdf'
