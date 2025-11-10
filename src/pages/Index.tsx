@@ -207,27 +207,27 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Hero Section with Premium Design */}
-      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-28 text-center relative overflow-hidden bg-mesh-gradient bg-animated-grid">
+      {/* Hero Section with Premium Design - Mobile Optimized */}
+      <section className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16 lg:py-24 text-center relative overflow-hidden bg-mesh-gradient bg-animated-grid">
         {/* Animated Background Blobs with Float Effect */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/30 to-purple-400/30 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-gradient-to-br from-pink-400/30 to-orange-400/30 rounded-full blur-3xl animate-float-slow" style={{animationDelay: '1s'}}></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] bg-gradient-to-br from-purple-400/25 to-cyan-400/25 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
+          <div className="absolute top-10 sm:top-20 left-5 sm:left-10 w-48 sm:w-96 h-48 sm:h-96 bg-gradient-to-br from-blue-400/30 to-purple-400/30 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-10 sm:bottom-20 right-5 sm:right-10 w-64 sm:w-[500px] h-64 sm:h-[500px] bg-gradient-to-br from-pink-400/30 to-orange-400/30 rounded-full blur-3xl animate-float-slow" style={{animationDelay: '1s'}}></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 sm:w-[450px] h-56 sm:h-[450px] bg-gradient-to-br from-purple-400/25 to-cyan-400/25 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
           
-          {/* Enhanced Floating Particles */}
-          <div className="absolute top-1/4 left-1/4 w-4 h-4 bg-blue-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '0s'}}></div>
-          <div className="absolute top-1/3 right-1/3 w-3 h-3 bg-purple-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '2s'}}></div>
-          <div className="absolute bottom-1/4 left-1/3 w-5 h-5 bg-pink-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '4s'}}></div>
-          <div className="absolute top-2/3 right-1/4 w-4 h-4 bg-cyan-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '1s'}}></div>
-          <div className="absolute bottom-1/3 right-1/2 w-3 h-3 bg-orange-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '3s'}}></div>
-          <div className="absolute top-1/2 left-2/3 w-4 h-4 bg-green-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '5s'}}></div>
-          <div className="absolute top-1/5 right-1/5 w-3 h-3 bg-indigo-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '6s'}}></div>
-          <div className="absolute bottom-1/5 left-1/5 w-4 h-4 bg-rose-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '7s'}}></div>
+          {/* Enhanced Floating Particles - Hidden on mobile for performance */}
+          <div className="hidden sm:block absolute top-1/4 left-1/4 w-4 h-4 bg-blue-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '0s'}}></div>
+          <div className="hidden sm:block absolute top-1/3 right-1/3 w-3 h-3 bg-purple-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '2s'}}></div>
+          <div className="hidden sm:block absolute bottom-1/4 left-1/3 w-5 h-5 bg-pink-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '4s'}}></div>
+          <div className="hidden sm:block absolute top-2/3 right-1/4 w-4 h-4 bg-cyan-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '1s'}}></div>
+          <div className="hidden sm:block absolute bottom-1/3 right-1/2 w-3 h-3 bg-orange-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '3s'}}></div>
+          <div className="hidden sm:block absolute top-1/2 left-2/3 w-4 h-4 bg-green-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '5s'}}></div>
+          <div className="hidden sm:block absolute top-1/5 right-1/5 w-3 h-3 bg-indigo-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '6s'}}></div>
+          <div className="hidden sm:block absolute bottom-1/5 left-1/5 w-4 h-4 bg-rose-500/50 rounded-full animate-particle shadow-lg" style={{animationDelay: '7s'}}></div>
         </div>
         
-        {/* Animated Decorative Icons */}
-        <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        {/* Animated Decorative Icons - Hidden on mobile */}
+        <div className="hidden md:block absolute inset-0 -z-10 overflow-hidden pointer-events-none">
           <FileText className="absolute top-32 left-20 w-16 h-16 text-blue-500/15 animate-float-slow" />
           <Combine className="absolute top-40 right-32 w-14 h-14 text-purple-500/15 animate-wiggle" style={{animationDelay: '1s'}} />
           <Lock className="absolute bottom-40 left-32 w-12 h-12 text-pink-500/15 animate-bounce-continuous" style={{animationDelay: '0.5s'}} />
@@ -235,10 +235,10 @@ const Index = () => {
           <Sparkles className="absolute top-1/4 right-1/4 w-10 h-10 text-yellow-500/15 animate-spin-slow" style={{animationDelay: '1.5s'}} />
         </div>
         
-        <h1 className="text-5xl md:text-6xl lg:text-7xl font-black mb-6 holographic leading-tight animate-blur-in tracking-tight perspective-container">
-          <span className="layer-3d-3">Every tool you need to work with PDFs</span>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black mb-4 sm:mb-6 holographic leading-tight animate-blur-in tracking-tight perspective-container px-2">
+          <span className="layer-3d-3 block break-words">Every tool you need to work with PDFs</span>
         </h1>
-        <div className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8 leading-relaxed animate-fade-in-up font-normal" style={{animationDelay: '0.2s'}}>
+        <div className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-full sm:max-w-2xl md:max-w-3xl mx-auto mb-6 sm:mb-8 leading-relaxed animate-fade-in-up font-normal px-2" style={{animationDelay: '0.2s'}}>
           <AnimatedText 
             text="All the PDF tools you need at your fingertips." 
             type="blur"
@@ -254,20 +254,20 @@ const Index = () => {
             delay={500}
           />
         </div>
-        <div className="animate-bounce-in" style={{animationDelay: '0.4s'}}>
+        <div className="animate-bounce-in px-2" style={{animationDelay: '0.4s'}}>
           <Button 
             onClick={scrollToTools}
             size="lg" 
-            className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-700 hover:via-fuchsia-700 hover:to-pink-700 hover:scale-105 transition-all duration-300 text-base md:text-lg px-8 md:px-10 py-6 h-auto group shadow-xl hover:shadow-2xl font-semibold rounded-lg animate-gradient animate-button-pulse" 
+            className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-700 hover:via-fuchsia-700 hover:to-pink-700 hover:scale-105 transition-all duration-300 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 py-4 sm:py-5 md:py-6 h-auto group shadow-xl hover:shadow-2xl font-semibold rounded-lg animate-gradient animate-button-pulse w-full sm:w-auto max-w-xs" 
           >
             Get Started
-            <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+            <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" />
           </Button>
         </div>
       </section>
 
-      {/* Category Tabs */}
-      <section ref={toolsRef} className="container mx-auto px-4 pt-8">
+      {/* Category Tabs - Mobile Optimized */}
+      <section ref={toolsRef} className="w-full mx-auto px-3 sm:px-4 lg:px-8 pt-6 sm:pt-8">
         <CategoryTabs
           categories={categories}
           activeCategory={activeCategory}
@@ -275,9 +275,9 @@ const Index = () => {
         />
       </section>
 
-      {/* Tools Grid with Advanced Staggered Animation */}
-      <section className="container mx-auto px-4 pb-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Tools Grid with Advanced Staggered Animation - Mobile Optimized */}
+      <section className="w-full mx-auto px-3 sm:px-4 lg:px-8 pb-12 sm:pb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredTools.map((tool, index) => (
             <div 
               key={`${tool.title}-${index}`}
@@ -297,18 +297,18 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="container mx-auto px-4 py-20 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+      {/* Features Section - Mobile Optimized */}
+      <section className="w-full mx-auto px-3 sm:px-4 lg:px-8 py-12 sm:py-16 md:py-20 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="text-center mb-8 sm:mb-12 md:mb-16 px-2">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent break-words">
             Why Choose PDFTools?
           </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-full sm:max-w-2xl mx-auto px-2">
             The most powerful and easy-to-use PDF tools, completely free
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto perspective-container">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto perspective-container">
           {/* Feature 1 - 3D Card */}
           <div className="group relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-3d hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 tilt-3d glass-3d">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-morph"></div>
@@ -353,27 +353,29 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="container mx-auto px-4 py-16 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 rounded-3xl my-20 shadow-2xl">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center text-white">
-          <div className="space-y-2">
-            <div className="text-5xl font-bold">17+</div>
-            <div className="text-xl opacity-90">PDF Tools</div>
-          </div>
-          <div className="space-y-2">
-            <div className="text-5xl font-bold">100%</div>
-            <div className="text-xl opacity-90">Free Forever</div>
-          </div>
-          <div className="space-y-2">
-            <div className="text-5xl font-bold">∞</div>
-            <div className="text-xl opacity-90">Unlimited Usage</div>
+      {/* Stats Section - Mobile Optimized */}
+      <section className="w-full mx-auto px-3 sm:px-4 lg:px-8 my-8 sm:my-12 md:my-16 lg:my-20">
+        <div className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 rounded-2xl sm:rounded-3xl py-8 sm:py-12 md:py-16 px-4 sm:px-6 shadow-2xl">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center text-white">
+            <div className="space-y-1 sm:space-y-2">
+              <div className="text-3xl sm:text-4xl md:text-5xl font-bold">17+</div>
+              <div className="text-base sm:text-lg md:text-xl opacity-90">PDF Tools</div>
+            </div>
+            <div className="space-y-1 sm:space-y-2">
+              <div className="text-3xl sm:text-4xl md:text-5xl font-bold">100%</div>
+              <div className="text-base sm:text-lg md:text-xl opacity-90">Free Forever</div>
+            </div>
+            <div className="space-y-1 sm:space-y-2">
+              <div className="text-3xl sm:text-4xl md:text-5xl font-bold">∞</div>
+              <div className="text-base sm:text-lg md:text-xl opacity-90">Unlimited Usage</div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Enhanced Footer */}
-      <footer className="border-t border-border/50 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 backdrop-blur-sm mt-20">
-        <div className="container mx-auto px-4 py-16">
+      {/* Enhanced Footer - Mobile Optimized */}
+      <footer className="border-t border-border/50 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 backdrop-blur-sm mt-12 sm:mt-16 md:mt-20">
+        <div className="w-full mx-auto px-3 sm:px-4 lg:px-8 py-8 sm:py-12 md:py-16">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             {/* Brand Column */}
             <div className="md:col-span-1">
