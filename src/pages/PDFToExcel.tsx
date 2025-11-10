@@ -14,6 +14,7 @@ const PDFToExcel = () => {
   const { toast } = useToast();
   const [files, setFiles] = useState<File[]>([]);
   const [isConverting, setIsConverting] = useState(false);
+  const [isWakingBackend, setIsWakingBackend] = useState(false);
 
   const handleFilesSelected = (newFiles: File[]) => {
     setFiles(newFiles);
@@ -21,6 +22,38 @@ const PDFToExcel = () => {
 
   const handleRemove = (index: number) => {
     setFiles(files.filter((_, i) => i !== index));
+  };
+
+  const handleWakeBackend = async () => {
+    setIsWakingBackend(true);
+    try {
+      toast({
+        title: "Waking up backend...",
+        description: "This may take 30-60 seconds on first use.",
+      });
+
+      const response = await fetch('https://pdftools-backend.onrender.com/health', {
+        method: 'GET',
+        mode: 'cors',
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Backend is ready!",
+          description: "You can now convert your PDF files.",
+        });
+      } else {
+        throw new Error('Backend health check failed');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Wake up failed",
+        description: "Please try again or wait a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsWakingBackend(false);
+    }
   };
 
   const handlePythonConversion = async () => {
@@ -90,11 +123,20 @@ const PDFToExcel = () => {
           <Card className="mb-6 p-4 bg-green-50 dark:bg-green-950 border-green-200">
             <div className="flex items-start gap-3">
               <Download className="h-5 w-5 text-green-600 mt-0.5" />
-              <div>
+              <div className="flex-1">
                 <h3 className="font-semibold text-green-900 dark:text-green-100 mb-1">PDF to Excel Converter</h3>
-                <p className="text-sm text-green-700 dark:text-green-300">
+                <p className="text-sm text-green-700 dark:text-green-300 mb-3">
                   Upload a PDF file and convert tables to Excel format.
                 </p>
+                <Button
+                  onClick={handleWakeBackend}
+                  disabled={isWakingBackend}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-green-300 text-green-700 hover:bg-green-100 dark:hover:bg-green-900"
+                >
+                  {isWakingBackend ? "Waking up backend..." : "Wake Up Backend (First Time)"}
+                </Button>
               </div>
             </div>
           </Card>
