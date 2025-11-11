@@ -1827,6 +1827,124 @@ def excel_to_bank_statement():
             except:
                 pass
 
+@app.route('/api/convert/excel-to-pdf-custom', methods=['POST', 'OPTIONS'])
+def excel_to_pdf_custom():
+    """
+    Convert Excel to PDF with custom bank statement formatting
+    Features: Header with logo, customer details, formatted transaction table
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    tmpdir = None
+    try:
+        print(f"\n{'='*60}")
+        print(f"EXCEL TO PDF - CUSTOM BANK STATEMENT FORMAT")
+        print(f"{'='*60}\n")
+        
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not allowed_file(file.filename, {'xlsx', 'xls', 'csv'}):
+            return jsonify({'error': 'Only Excel (.xlsx, .xls) or CSV (.csv) files are allowed'}), 400
+        
+        # Create temp directory
+        tmpdir = tempfile.mkdtemp()
+        
+        # Save uploaded file
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(tmpdir, filename)
+        file.save(file_path)
+        print(f"File saved: {filename}")
+        
+        # Check for logo file
+        logo_path = None
+        if 'logo' in request.files:
+            logo_file = request.files['logo']
+            if logo_file and logo_file.filename:
+                logo_filename = secure_filename(logo_file.filename)
+                logo_path = os.path.join(tmpdir, logo_filename)
+                logo_file.save(logo_path)
+                print(f"Logo saved: {logo_filename}")
+        
+        # Get customer info from form data (if provided)
+        account_info = None
+        if request.form:
+            account_info = {
+                'customer_id': request.form.get('customer_id', ''),
+                'account_holder_name': request.form.get('account_holder_name', ''),
+                'account_number': request.form.get('account_number', ''),
+                'transaction_date_from': request.form.get('transaction_date_from', ''),
+                'transaction_date_to': request.form.get('transaction_date_to', ''),
+            }
+            # Remove empty values
+            account_info = {k: v for k, v in account_info.items() if v}
+            if not account_info:
+                account_info = None
+            else:
+                print(f"Customer info provided: {account_info}")
+        
+        # Convert CSV to Excel if needed
+        excel_path = file_path
+        if filename.lower().endswith('.csv'):
+            print("Converting CSV to Excel...")
+            df = pd.read_csv(file_path)
+            excel_path = os.path.join(tmpdir, filename.replace('.csv', '.xlsx'))
+            df.to_excel(excel_path, index=False)
+            print(f"CSV converted to Excel: {os.path.basename(excel_path)}")
+        
+        # Use the enhanced Excel to PDF converter
+        from excel_to_pdf_table import convert_to_pdf_table
+        
+        pdf_path = os.path.join(tmpdir, Path(filename).stem + '_statement.pdf')
+        
+        print("Converting to PDF with custom formatting...")
+        result = convert_to_pdf_table(
+            input_path=excel_path,
+            output_path=pdf_path,
+            account_info=account_info,
+            logo_path=logo_path,
+            use_ilovepdf_api=False  # Use custom ReportLab formatting
+        )
+        
+        if not result or not os.path.exists(result):
+            raise RuntimeError("PDF generation failed")
+        
+        print(f"✓ PDF created successfully: {os.path.basename(result)}")
+        print(f"{'='*60}\n")
+        
+        # Send file
+        pdf_name = Path(filename).stem + '_statement.pdf'
+        return send_file(
+            result,
+            as_attachment=True,
+            download_name=pdf_name,
+            mimetype='application/pdf'
+        )
+    
+    except Exception as e:
+        error_msg = str(e)
+        print(f"\n{'='*60}")
+        print(f"ERROR IN CUSTOM EXCEL TO PDF CONVERSION")
+        print(f"Error: {error_msg}")
+        print(f"{'='*60}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': error_msg}), 500
+    finally:
+        # Cleanup
+        if tmpdir and os.path.exists(tmpdir):
+            try:
+                import time
+                time.sleep(1)
+                shutil.rmtree(tmpdir, ignore_errors=True)
+            except:
+                pass
+
 @app.route('/api/convert/pdf-to-jpg', methods=['POST', 'OPTIONS'])
 def pdf_to_jpg():
     """Convert PDF to JPG images - Optimized for speed"""
