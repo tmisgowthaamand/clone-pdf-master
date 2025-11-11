@@ -124,48 +124,32 @@ def convert_excel_to_pdf_table(excel_path, output_path, account_info=None, logo_
     from reportlab.platypus import Image as RLImage
     from reportlab.lib.utils import ImageReader
     
-    # Create header with logo and bank name
-    header_data = []
-    
-    # If logo is provided, add it to the header
+    # Bank of India logo and header (right-aligned like in screenshot)
     if logo_path and os.path.exists(logo_path):
         try:
-            logo = RLImage(logo_path, width=40*mm, height=15*mm)
-            bank_name = Paragraph(
-                "<b><font size=16 color='#003366'>Bank Statement</font></b><br/>"
-                "<font size=9><i>Relationship beyond banking</i></font>",
-                ParagraphStyle("BankName", alignment=TA_LEFT, leading=14)
-            )
-            header_table = Table([[logo, bank_name]], colWidths=[45*mm, 120*mm])
-            header_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-                ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ]))
-            elements.append(header_table)
+            logo = RLImage(logo_path, width=50*mm, height=18*mm)
+            logo.hAlign = 'RIGHT'
+            elements.append(logo)
         except Exception as e:
             print(f"Warning: Could not load logo: {e}")
-            # Fallback to text-only header
-            elements.append(
-                Paragraph("<b><font size=16 color='#003366'>Bank Statement</font></b>",
-                          ParagraphStyle("Header", alignment=TA_CENTER, textColor=colors.HexColor('#003366')))
-            )
-    else:
-        # Text-only header
-        elements.append(
-            Paragraph("<b><font size=16 color='#003366'>Bank Statement</font></b>",
-                      ParagraphStyle("Header", alignment=TA_CENTER, textColor=colors.HexColor('#003366')))
-        )
-        elements.append(
-            Paragraph("<font size=9><i>Relationship beyond banking</i></font>",
-                      ParagraphStyle("Tagline", alignment=TA_CENTER, fontSize=9))
-        )
     
-    elements.append(Spacer(1, 8 * mm))
+    elements.append(Spacer(1, 3 * mm))
+    
+    # "Detailed Statement" title (centered, bold)
+    elements.append(
+        Paragraph("<b><font size=18>Detailed Statement</font></b>",
+                  ParagraphStyle("Title", alignment=TA_CENTER, fontSize=18, spaceAfter=10))
+    )
+    
+    elements.append(Spacer(1, 5 * mm))
 
     # ============ CUSTOMER DETAILS SECTION ============
-    # Get current date for statement generation
-    current_date = datetime.now().strftime("%d-%m-%Y")
+    # Add date in top right corner
+    current_date = datetime.now().strftime("%d/%m/%Y")
+    date_para = Paragraph(f"<b>Date: {current_date}</b>", 
+                         ParagraphStyle("DateStyle", alignment=TA_RIGHT, fontSize=10))
+    elements.append(date_para)
+    elements.append(Spacer(1, 3 * mm))
     
     # Account Info
     if not account_info:
@@ -173,63 +157,75 @@ def convert_excel_to_pdf_table(excel_path, output_path, account_info=None, logo_
             "customer_id": "192136847",
             "account_holder_name": "HARINI AND THARSHINI TRADERS",
             "account_number": "826820110000461",
+            "account_holder_address": "W/O PRABAKARAN,7A 6TH CROSS STREET THIRUVALLUVAR NAGAR,PALNGANATHAM 625003",
             "transaction_date_from": "02-03-2025",
             "transaction_date_to": "02-09-2025",
-            "statement_date": current_date,
         }
-    else:
-        # Ensure statement_date is present
-        if "statement_date" not in account_info:
-            account_info["statement_date"] = current_date
 
-    # Create customer details section with better formatting
-    customer_style = ParagraphStyle(
-        "CustomerDetails",
-        fontSize=9,
-        leading=14,
-        textColor=colors.HexColor('#333333'),
-        leftIndent=5,
-    )
+    # Create customer details box (matching Bank of India format)
+    detail_style = ParagraphStyle("DetailStyle", fontSize=9, leading=12)
     
-    customer_details = [
-        ["<b>Statement Date:</b>", account_info.get('statement_date', current_date)],
-        ["<b>Customer ID:</b>", account_info.get('customer_id', 'N/A')],
-        ["<b>Account Holder:</b>", account_info.get('account_holder_name', 'N/A')],
-        ["<b>Account Number:</b>", account_info.get('account_number', 'N/A')],
-        ["<b>Transaction Period:</b>", f"{account_info.get('transaction_date_from', 'N/A')} to {account_info.get('transaction_date_to', 'N/A')}"],
+    # Create 2x2 grid for customer details
+    customer_box_data = [
+        [
+            Paragraph("<b>Customer ID:</b>", detail_style),
+            Paragraph(account_info.get('customer_id', '192136847'), detail_style),
+            Paragraph("<b>Account holder address:</b>", detail_style),
+            Paragraph(account_info.get('account_holder_address', 'N/A'), detail_style)
+        ],
+        [
+            Paragraph("<b>Account holder name:</b>", detail_style),
+            Paragraph(account_info.get('account_holder_name', 'HARINI AND THARSHINI TRADERS'), detail_style),
+            '',
+            ''
+        ],
+        [
+            Paragraph("<b>Account number:</b>", detail_style),
+            Paragraph(account_info.get('account_number', '826820110000461'), detail_style),
+            '',
+            ''
+        ]
     ]
     
-    # Convert to paragraphs for better rendering
-    customer_table_data = []
-    for label, value in customer_details:
-        customer_table_data.append([
-            Paragraph(label, customer_style),
-            Paragraph(str(value), customer_style)
-        ])
-    
-    customer_table = Table(customer_table_data, colWidths=[50*mm, 120*mm])
+    customer_table = Table(customer_box_data, colWidths=[45*mm, 65*mm, 50*mm, 90*mm])
     customer_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f5f5f5')),
-        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#cccccc')),
+        ('BOX', (0, 0), (-1, -1), 1.5, colors.black),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('SPAN', (3, 0), (3, 2)),  # Span address field across rows
     ]))
     
     elements.append(customer_table)
-    elements.append(Spacer(1, 8 * mm))
-
-    # ============ TRANSACTION TABLE SECTION ============
-    # Add section title
-    elements.append(
-        Paragraph("<b><font size=11 color='#003366'>Transaction Details</font></b>",
-                  ParagraphStyle("SectionTitle", alignment=TA_LEFT, textColor=colors.HexColor('#003366')))
-    )
-    elements.append(Spacer(1, 3 * mm))
+    elements.append(Spacer(1, 5 * mm))
+    
+    # ============ TRANSACTION FILTERS SECTION ============
+    # Add transaction date, amount, cheque filters (like in screenshot)
+    filter_style = ParagraphStyle("FilterStyle", fontSize=9, leading=14)
+    filter_data = [
+        [Paragraph("<b>Transaction Date</b>", filter_style), 
+         Paragraph(f"from: {account_info.get('transaction_date_from', '02-03-2025')}", filter_style),
+         Paragraph(f"to: {account_info.get('transaction_date_to', '02-09-2025')}", filter_style)],
+        [Paragraph("<b>Amount</b>", filter_style), 
+         Paragraph("from: -", filter_style),
+         Paragraph("to: -", filter_style)],
+        [Paragraph("<b>Cheque</b>", filter_style), 
+         Paragraph("from: -", filter_style),
+         Paragraph("to: -", filter_style)],
+        [Paragraph("<b>Transaction type: All</b>", filter_style), '', '']
+    ]
+    
+    filter_table = Table(filter_data, colWidths=[50*mm, 50*mm, 50*mm])
+    filter_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    
+    elements.append(filter_table)
+    elements.append(Spacer(1, 5 * mm))
 
     # Prepare table data
     table_data = [df.columns.tolist()] + df.astype(str).values.tolist()
@@ -256,32 +252,32 @@ def convert_excel_to_pdf_table(excel_path, output_path, account_info=None, logo_
     # Create table with enhanced styling
     table = Table(table_data, colWidths=col_widths, repeatRows=1)
     
-    # Apply professional table styling
+    # Apply Bank of India table styling (matching screenshot)
     table_style = TableStyle([
-        # Header row styling
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        # Header row styling - white background with black border
+        ('BACKGROUND', (0, 0), (-1, 0), colors.white),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 9),
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
         
         # Data rows styling
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
         ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
         
-        # Alternating row colors for better readability
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9f9f9')]),
+        # All rows white background (no alternating colors in Bank of India format)
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         
-        # Grid and borders
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
-        ('BOX', (0, 0), (-1, -1), 1.5, colors.HexColor('#003366')),
+        # Grid and borders - black lines
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('BOX', (0, 0), (-1, -1), 1.5, colors.black),
         
         # Padding
-        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
         
         # Vertical alignment
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -295,11 +291,6 @@ def convert_excel_to_pdf_table(excel_path, output_path, account_info=None, logo_
     
     table.setStyle(table_style)
     elements.append(table)
-    
-    # Add footer with page numbers
-    elements.append(Spacer(1, 5 * mm))
-    footer_text = f"<font size=7 color='#666666'>Generated on {current_date} | This is a computer-generated statement</font>"
-    elements.append(Paragraph(footer_text, ParagraphStyle("Footer", alignment=TA_CENTER, fontSize=7)))
 
     # Build PDF
     doc.build(elements)
